@@ -7,6 +7,7 @@ from okf_parser import load_bundle
 
 from wikiskill import WikiSkill, __version__
 from wikiskill.mcp import mcp
+from wikiskill.models import generate_pydantic_code, get_schema_contracts
 
 
 def test_version() -> None:
@@ -48,3 +49,15 @@ def test_fastmcp_tools_registered() -> None:
         assert "wikiskill_context" in tool_names
 
     asyncio.run(_check())
+
+
+def test_pydantic_schema_contracts_derivation() -> None:
+    knowledge_path = Path(__file__).parent.parent / "knowledge"
+    code = generate_pydantic_code(knowledge_path)
+    assert "class AgentSkillConcept(BaseModel):" in code
+    assert "class ExperienceConcept(BaseModel):" in code
+    assert "class WikiEntryConcept(BaseModel):" in code
+
+    contracts = get_schema_contracts(knowledge_path)
+    contract_types = {c.concept_type for c in contracts}
+    assert contract_types >= {"AgentSkill", "Experience", "WikiEntry"}
