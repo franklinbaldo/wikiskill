@@ -60,3 +60,15 @@ skips = ["B101"]
 [tool.vulture]
 paths = ["src/wikiskill"]
 min_confidence = 80
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=wikiskill --cov-report=term-missing --cov-fail-under=80"
+
+[tool.coverage.run]
+branch = true
+source = ["src/wikiskill"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 80

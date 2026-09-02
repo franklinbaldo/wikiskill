@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
+import pytest
 from okf_parser import load_bundle
 
 from wikiskill import WikiSkill, __version__
@@ -61,3 +62,27 @@ def test_pydantic_schema_contracts_derivation() -> None:
     contracts = get_schema_contracts(knowledge_path)
     contract_types = {c.concept_type for c in contracts}
     assert contract_types >= {"AgentSkill", "Experience", "WikiEntry"}
+
+
+def test_mcp_tool_execution() -> None:
+    from wikiskill.mcp import wikiskill_context, wikiskill_inventory
+
+    inv = wikiskill_inventory()
+    assert inv["Experience"] >= 1
+
+    ctx = wikiskill_context("bootstrap")
+    assert ctx["task"] == "bootstrap"
+    assert len(ctx["skills"]) >= 1
+
+
+def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
+    from wikiskill.cli import context, info
+
+    info()
+    captured = capsys.readouterr()
+    assert "wikiskill runtime v0.1.0" in captured.out
+
+    context("bootstrap")
+    captured = capsys.readouterr()
+    assert "Context for: bootstrap" in captured.out
+    assert "Skills found" in captured.out
