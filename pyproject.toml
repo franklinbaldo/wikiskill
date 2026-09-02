@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "wikiskill"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Persistent agent learning runtime built on OKF: experience -> wiki -> skills -> evaluation -> evolution."
 readme = "README.md"
 license = "MIT"
@@ -39,6 +39,9 @@ dev = [
     "bandit>=1.8",
     "vulture>=2.14",
 ]
+
+[tool.hatch.version]
+path = "src/wikiskill/__init__.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/wikiskill"]

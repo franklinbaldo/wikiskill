@@ -44,6 +44,13 @@ repos:
         pass_filenames: false
         always_run: true
 
+      - id: version-check
+        name: check version sync & changelog presence
+        entry: uv run --no-sync scripts/check_version.py
+        language: system
+        pass_filenames: false
+        always_run: true
+
       - id: okf-check
         name: okf parser check (normative specs)
         entry: uv run --no-sync okf-parser check knowledge/ --require-spec "../specs/{slug}.md" --normative-spec
