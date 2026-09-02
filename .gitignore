@@ -9,3 +9,5 @@ htmlcov/
 dist/
 build/
 .githooks/pre-commit
+.sinustdd/session.json
+.sinustdd/workspace-guard-state.json
