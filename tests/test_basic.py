@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 from okf_parser import load_bundle
 
 from wikiskill import WikiSkill, __version__
+from wikiskill.mcp import mcp
 
 
 def test_version() -> None:
@@ -36,3 +38,13 @@ def test_wikiskill_runtime_inventory_and_context() -> None:
     assert len(ctx["skills"]) >= 1
     assert any(s["id"] == "skills/bootstrap-repository" for s in ctx["skills"])
     assert len(ctx["recent_experiences"]) >= 1
+
+
+def test_fastmcp_tools_registered() -> None:
+    async def _check() -> None:
+        tools = await mcp.list_tools()
+        tool_names = [t.name for t in tools]
+        assert "wikiskill_inventory" in tool_names
+        assert "wikiskill_context" in tool_names
+
+    asyncio.run(_check())
