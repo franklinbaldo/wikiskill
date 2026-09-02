@@ -9,5 +9,8 @@ htmlcov/
 dist/
 build/
 .githooks/pre-commit
+
+# Sinos operational/derived state is ephemeral. `.sinustdd/evidence/**` stays tracked.
 .sinustdd/session.json
 .sinustdd/workspace-guard-state.json
+.sinustdd/cycles/
