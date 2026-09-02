@@ -4,19 +4,20 @@ from __future__ import annotations
 
 import cyclopts
 
+from wikiskill import __version__
 from wikiskill.runtime import WikiSkill
 
 app = cyclopts.App(
     name="wikiskill",
     help="Persistent agent learning runtime built on OKF.",
-    version="0.1.0",
+    version=__version__,
 )
 
 
 @app.command
 def info() -> None:
     """Show wikiskill version and runtime information."""
-    print("wikiskill runtime v0.1.0 (OKF-backed)")
+    print(f"wikiskill runtime v{__version__} (OKF-backed)")
 
 
 @app.command

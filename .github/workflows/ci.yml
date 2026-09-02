@@ -43,6 +43,9 @@ jobs:
       - name: Validate PEP 723 Metadata in scripts
         run: uv run scripts/check_pep723.py
 
+      - name: Check Version Sync & Changelog Presence
+        run: uv run scripts/check_version.py
+
       - name: Validate OKF Bundle (Normative Specs Gate)
         run: uv run okf-parser check knowledge/ --require-spec "../specs/{slug}.md" --normative-spec
 
