@@ -41,7 +41,7 @@ jobs:
         run: uv run vulture src/ --min-confidence 80
 
       - name: Validate PEP 723 Metadata in scripts
-        run: uv run python scripts/check_pep723.py
+        run: uv run scripts/check_pep723.py
 
       - name: Validate OKF Bundle (Normative Specs Gate)
         run: uv run okf-parser check knowledge/ --require-spec "../specs/{slug}.md" --normative-spec
