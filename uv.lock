@@ -2026,7 +2026,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=3.0" },
     { name = "ibis-framework", extras = ["duckdb"], specifier = ">=9.0" },
     { name = "networkx", specifier = ">=3.2" },
-    { name = "okf-parser", specifier = ">=0.2.14" },
+    { name = "okf-parser", specifier = ">=0.45.6" },
     { name = "pydantic", specifier = ">=2.7" },
 ]
 

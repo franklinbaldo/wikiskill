@@ -13,7 +13,7 @@ authors = [
     { name = "Franklin Silveira Baldo", email = "franklinbaldo@gmail.com" },
 ]
 dependencies = [
-    "okf-parser>=0.2.14",
+    "okf-parser>=0.45.6",
     "ibis-framework[duckdb]>=9.0",
     "duckdb>=1.0",
     "networkx>=3.2",

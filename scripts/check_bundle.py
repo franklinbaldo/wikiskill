@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.12"
 # dependencies = [
-#     "okf-parser>=0.2.14",
+#     "okf-parser>=0.45.6",
 #     "rich>=13.0",
 # ]
 # ///
