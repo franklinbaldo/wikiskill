@@ -13,9 +13,8 @@ Rules enforced:
 3. Every change card in changelog/changes/ has valid frontmatter (type: Changelog, version, date).
 """
 
-from __future__ import annotations
-
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -23,6 +22,48 @@ from rich.console import Console
 
 console = Console()
 ROOT = Path(__file__).parent.parent
+
+
+def _git(*args: str) -> str:
+    res = subprocess.run(
+        ["git", *args],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    return res.stdout.strip() if res.returncode == 0 else ""
+
+
+def parse_semver(ver: str) -> tuple[int, int, int]:
+    parts = ver.split(".", 2)
+    if len(parts) != 3:
+        msg = f"Invalid SemVer: {ver}"
+        raise ValueError(msg)
+    return (int(parts[0]), int(parts[1]), int(parts[2]))
+
+
+def get_base_version(base_ref: str = "origin/main") -> str | None:
+    content = _git("show", f"{base_ref}:src/wikiskill/__init__.py")
+    if not content:
+        return None
+    m = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+    return m.group(1) if m else None
+
+
+def check_breaking_test_changes(base_ref: str = "origin/main") -> bool:
+    """Check if existing tests were deleted or modified with removed assertions."""
+    diff = _git("diff", "-U0", f"{base_ref}...HEAD", "--", "tests/")
+    if not diff:
+        diff = _git("diff", "-U0", base_ref, "--", "tests/")
+    # If lines starting with -assert were deleted in tests, it suggests a modified expectation
+    deleted_assertions = [
+        line
+        for line in diff.splitlines()
+        if line.startswith("-") and not line.startswith("---") and "assert" in line
+    ]
+    return len(deleted_assertions) > 0
 
 
 def get_canonical_version() -> str:
@@ -84,6 +125,28 @@ def check_version_and_changelog() -> bool:
         )
         for card in matching_cards:
             console.print(f"   + {card.relative_to(ROOT)}")
+
+    # Check SemVer transition against base branch if available
+    base_version = get_base_version("origin/main")
+    if base_version and base_version != version:
+        try:
+            curr_major, curr_minor, curr_patch = parse_semver(version)
+            base_major, base_minor, base_patch = parse_semver(base_version)
+            is_breaking = check_breaking_test_changes("origin/main")
+
+            if is_breaking:
+                # If breaking changes exist, bump must be at least MINOR (0.x) or MAJOR (1.x+)
+                if curr_major == base_major and curr_minor == base_minor:
+                    msg = (
+                        f"Breaking test changes detected against {base_version}! "
+                        f"Patch bump {version} is rejected — a minor or major bump is required."
+                    )
+                    errors.append(msg)
+                else:
+                    msg = f"! Non-patch bump ({base_version} -> {version}) accepted"
+                    console.print(f"[bold yellow]{msg}[/bold yellow]")
+        except Exception as exc:
+            console.print(f"[yellow]Warning during semver diff comparison: {exc}[/yellow]")
 
     if errors:
         console.print("[bold red]Errors detected:[/bold red]")
