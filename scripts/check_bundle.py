@@ -1,4 +1,4 @@
-﻿# /// script
+# /// script
 # requires-python = ">=3.12"
 # dependencies = [
 #     "okf-parser>=0.45.6",
