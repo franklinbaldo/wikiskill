@@ -21,3 +21,42 @@
 
 ### Phase 4: MCP-Driven Agent Operation
 - Agent sessions operate the repository primarily via `wikiskill_*` FastMCP tools.
+
+---
+
+## Causal implementation protocol: Sinos / SinusTDD
+
+Substantive implementation work in this repository should use `franklinbaldo/sinustdd` as an external causal TDD verifier. It is a development/dogfooding tool, **not** a runtime dependency of `wikiskill`.
+
+The currently adopted reference is:
+
+```text
+d4c3c04f64946f82d73ae92402d20f79b84f2a1f
+```
+
+That revision provides the OKF-native evidence v2 ledger verified through `okf-parser` and DuckDB.
+
+Run Sinos inside the WikiSkill project environment without adding it to `pyproject.toml`:
+
+```bash
+SINUSTDD_REF=d4c3c04f64946f82d73ae92402d20f79b84f2a1f
+SINUSTDD="sinustdd @ git+https://github.com/franklinbaldo/sinustdd.git@${SINUSTDD_REF}"
+
+uv run --with "$SINUSTDD" sinustdd begin
+# add/commit only the failing verification contract
+uv run --with "$SINUSTDD" sinustdd red
+# implement without changing the frozen RED contract
+uv run --with "$SINUSTDD" sinustdd green
+uv run --with "$SINUSTDD" sinustdd refactor
+uv run --with "$SINUSTDD" sinustdd complete
+```
+
+Rules:
+
+- a GitHub Actions failure with no allocated/executed steps is infrastructure failure, never a `RedWitness`;
+- `.sinustdd/evidence/**` is durable causal evidence and should be committed;
+- `.sinustdd/session.json`, `.sinustdd/workspace-guard-state.json`, and the legacy/derived `.sinustdd/cycles/` snapshots are operational state and are ignored here;
+- WikiSkill `Experience` and Sinos evidence serve different purposes: Sinos proves **the causal order of the implementation**, while WikiSkill records **what happened and what was learned**;
+- after a successful feature cycle, use `wikiskill experience record` to preserve the useful engineering lesson in `knowledge/experiences/`.
+
+At the pinned revision, `PosixPermissionGuard` exists and is integrated with `SinusTDDEngine`, but the stock `sinustdd` CLI does not yet instantiate it. Therefore the commands above provide the real causal ledger but not automatic POSIX write-locking. Do not claim filesystem enforcement unless the engine was actually instantiated with that guard.
