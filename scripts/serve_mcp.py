@@ -1,8 +1,8 @@
-# /// script
+﻿# /// script
 # requires-python = ">=3.12"
 # dependencies = [
 #     "fastmcp>=3.0",
-#     "okf-parser>=0.2.14",
+#     "okf-parser>=0.45.6",
 #     "cyclopts>=4.0",
 # ]
 # ///

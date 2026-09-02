@@ -1,4 +1,4 @@
-minimum_prek_version: "0.5.1"
+﻿minimum_prek_version: "0.5.1"
 default_install_hook_types: [pre-commit, pre-push]
 
 repos:
@@ -17,8 +17,8 @@ repos:
         types: [python]
 
       - id: okf-check
-        name: okf parser check
-        entry: uv run --no-sync okf-parser check knowledge/
+        name: okf parser check (normative specs)
+        entry: uv run --no-sync okf-parser check knowledge/ --require-spec "../specs/{slug}.md" --normative-spec
         language: system
         pass_filenames: false
         always_run: true
