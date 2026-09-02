@@ -36,6 +36,8 @@ dev = [
     "ruff>=0.9",
     "prek>=0.5.1",
     "ty>=0.0.1a0",
+    "bandit>=1.8",
+    "vulture>=2.14",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -47,3 +49,11 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B101"]
+
+[tool.vulture]
+paths = ["src/wikiskill"]
+min_confidence = 80
