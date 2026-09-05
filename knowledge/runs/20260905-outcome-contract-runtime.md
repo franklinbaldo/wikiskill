@@ -13,9 +13,10 @@ evidence:
 checks:
   - run-checks/20260905-okf
   - run-checks/20260905-tests
-experiences_recorded: []
+experiences_recorded:
+  - experiences/20260905-contract-first-types
 ---
 
 # Run outcome
 
-The first self-hosted WikiSkill run reached its declared success signal and leaves the runtime ready for repeated dogfooding.
+The first self-hosted WikiSkill run reached its declared success signal and produced a reusable Experience from an architectural fact discovered during execution.
