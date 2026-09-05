@@ -31,7 +31,7 @@ def _temp_bundle(tmp_path: Path) -> Path:
 
 
 def test_version() -> None:
-    assert __version__ == "0.2.5"
+    assert __version__ == "0.2.6"
 
 
 def test_bundle_conformance() -> None:
@@ -46,6 +46,9 @@ def test_bundle_conformance() -> None:
     assert "AgentSkill" in concept_types
     assert "RunSpec" in concept_types
     assert "SessionType" in concept_types
+    assert "ContextPolicy" in concept_types
+    assert "AccessPolicy" in concept_types
+    assert "OutputPolicy" in concept_types
 
 
 def test_wikiskill_runtime_inventory_and_context() -> None:
@@ -60,6 +63,8 @@ def test_wikiskill_runtime_inventory_and_context() -> None:
 
     ctx = ws.context(task="wikiskill development")
     assert ctx["task"] == "wikiskill development"
+    assert ctx["session_type"] == "session-types/development"
+    assert ctx["context_policy"]["id"] == "context-policies/development"
     assert any(s["id"] == "run-specs/wikiskill-development" for s in ctx["run_specs"])
     assert "active_handoffs" in ctx
 
@@ -82,6 +87,7 @@ def test_run_start_is_incomplete_and_contract_guided(tmp_path: Path) -> None:
     assert started["session_type"] == "session-types/development"
     assert started["session"]["inheritance"] == ["session-types/base", "session-types/development"]
     assert Path(started["path"]).exists()
+    assert "experiences/runs" in started["path"]
     assert "active_handoffs" in started
     check = started["check"]
     assert check["conformant"] is False
@@ -105,7 +111,7 @@ def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> Non
     ws = WikiSkill.open(knowledge_path)
     started = ws.start_run("wikiskill development", "run-specs/wikiskill-development")
     run_id = started["run_id"]
-    runs = knowledge_path / "runs"
+    runs = knowledge_path / "experiences" / "runs"
 
     for index, kind in enumerate(
         [
@@ -220,6 +226,9 @@ def test_pydantic_schema_contracts_derivation() -> None:
     assert "class RunSpecConcept(BaseModel):" in code
     assert "class HandoffConcept(BaseModel):" in code
     assert "class SessionTypeConcept(BaseModel):" in code
+    assert "class ContextPolicyConcept(BaseModel):" in code
+    assert "class AccessPolicyConcept(BaseModel):" in code
+    assert "class OutputPolicyConcept(BaseModel):" in code
 
     contracts = get_schema_contracts(knowledge_path)
     contract_types = {c.concept_type for c in contracts}
@@ -230,6 +239,9 @@ def test_pydantic_schema_contracts_derivation() -> None:
         "RunSpec",
         "Handoff",
         "SessionType",
+        "ContextPolicy",
+        "AccessPolicy",
+        "OutputPolicy",
     }
 
 
@@ -251,7 +263,7 @@ def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
 
     info()
     captured = capsys.readouterr()
-    assert "wikiskill runtime v0.2.5" in captured.out
+    assert "wikiskill runtime v0.2.6" in captured.out
 
     context("bootstrap")
     captured = capsys.readouterr()
