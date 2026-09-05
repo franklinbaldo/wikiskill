@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import cyclopts
 
 from wikiskill import __version__
@@ -43,6 +45,20 @@ def context(task: str) -> None:
     print(f"Wiki knowledge found ({len(res['wiki'])}):")
     for wiki in res["wiki"]:
         print(f"  - [{wiki['id']}] {wiki['title']}")
+
+
+@app.command
+def start(task: str, run_spec: str | None = None) -> None:
+    """Create a live LoopRun scaffold for a task."""
+    result = WikiSkill.open("knowledge").start_run(task, run_spec)
+    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+
+
+@app.command
+def check(run: str) -> None:
+    """Check a live run and show unsatisfied operational requirements."""
+    result = WikiSkill.open("knowledge").check_run(run)
+    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
 
 
 def main() -> None:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -10,13 +12,30 @@ from wikiskill import WikiSkill, __version__
 from wikiskill.mcp import mcp
 from wikiskill.models import generate_pydantic_code, get_schema_contracts
 
+ROOT = Path(__file__).parent.parent
+
+
+def _write_concept(path: Path, frontmatter: dict[str, object]) -> None:
+    lines = ["---"]
+    for key, value in frontmatter.items():
+        lines.append(f"{key}: {json.dumps(value, ensure_ascii=False)}")
+    lines.extend(["---", "", "# Test concept", ""])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _temp_bundle(tmp_path: Path) -> Path:
+    shutil.copytree(ROOT / "knowledge", tmp_path / "knowledge")
+    shutil.copytree(ROOT / "specs", tmp_path / "specs")
+    return tmp_path / "knowledge"
+
 
 def test_version() -> None:
-    assert __version__ == "0.1.0"
+    assert __version__ == "0.2.0"
 
 
 def test_bundle_conformance() -> None:
-    knowledge_path = Path(__file__).parent.parent / "knowledge"
+    knowledge_path = ROOT / "knowledge"
     bundle = load_bundle(knowledge_path)
     count = bundle.concepts.count().execute()
     assert count >= 4
@@ -29,7 +48,7 @@ def test_bundle_conformance() -> None:
 
 
 def test_wikiskill_runtime_inventory_and_context() -> None:
-    knowledge_path = Path(__file__).parent.parent / "knowledge"
+    knowledge_path = ROOT / "knowledge"
     ws = WikiSkill.open(knowledge_path)
     inv = ws.inventory()
     assert inv["Experience"] >= 1
@@ -47,18 +66,124 @@ def test_wikiskill_runtime_inventory_and_context() -> None:
     assert len(bootstrap_ctx["recent_experiences"]) >= 1
 
 
+def test_run_start_is_incomplete_and_contract_guided(tmp_path: Path) -> None:
+    knowledge_path = _temp_bundle(tmp_path)
+    ws = WikiSkill.open(knowledge_path)
+
+    started = ws.start_run(
+        "wikiskill development",
+        "run-specs/wikiskill-development",
+    )
+
+    assert started["status"] == "scaffold"
+    assert Path(started["path"]).exists()
+    check = started["check"]
+    assert check["conformant"] is False
+    requirements = {item["requirement"] for item in check["unsatisfied"]}
+    assert "reading:repository-guide" in requirements
+    assert "goal:project-advance" in requirements
+    assert "evidence:change" in requirements
+    assert "check:tests" in requirements
+    assert "outcome" in requirements
+
+
+def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> None:
+    knowledge_path = _temp_bundle(tmp_path)
+    ws = WikiSkill.open(knowledge_path)
+    started = ws.start_run("wikiskill development", "run-specs/wikiskill-development")
+    run_id = started["run_id"]
+    runs = knowledge_path / "runs"
+
+    for index, kind in enumerate(
+        ["repository-guide", "open-issues", "open-prs", "okf-knowledge", "recent-runs"],
+        start=1,
+    ):
+        _write_concept(
+            runs / f"reading-{index}.md",
+            {
+                "type": "RunReading",
+                "id": f"run-readings/{index}",
+                "run": run_id,
+                "kind": kind,
+                "subject": kind,
+                "reference": f"ref:{kind}",
+                "finding": f"finding for {kind}",
+            },
+        )
+
+    _write_concept(
+        runs / "goal.md",
+        {
+            "type": "RunGoal",
+            "id": "run-goals/1",
+            "run": run_id,
+            "kind": "project-advance",
+            "goal": "advance the runtime",
+            "rationale": "exercise the execution contract",
+            "success_signal": "contract becomes satisfied",
+            "status": "achieved",
+        },
+    )
+
+    for index, kind in enumerate(["change", "verification"], start=1):
+        _write_concept(
+            runs / f"evidence-{index}.md",
+            {
+                "type": "RunEvidence",
+                "id": f"run-evidence/{index}",
+                "run": run_id,
+                "kind": kind,
+                "reference": f"ref:{kind}",
+                "summary": f"evidence for {kind}",
+            },
+        )
+
+    for index, kind in enumerate(["okf", "tests"], start=1):
+        _write_concept(
+            runs / f"check-{index}.md",
+            {
+                "type": "RunCheck",
+                "id": f"run-checks/{index}",
+                "run": run_id,
+                "kind": kind,
+                "procedure": f"verify {kind}",
+                "result": "passed",
+                "status": "pass",
+            },
+        )
+
+    _write_concept(
+        runs / "outcome.md",
+        {
+            "type": "RunOutcome",
+            "id": "run-outcomes/1",
+            "run": run_id,
+            "result_state": "green",
+            "summary": "the run contract is satisfied",
+            "next_move": "continue with the next useful run",
+        },
+    )
+
+    result = WikiSkill.open(knowledge_path).check_run(run_id)
+    assert result["structural"]["conformant"] is True
+    assert result["unsatisfied"] == []
+    assert result["conformant"] is True
+
+
 def test_fastmcp_tools_registered() -> None:
     async def _check() -> None:
         tools = await mcp.list_tools()
         tool_names = [t.name for t in tools]
         assert "wikiskill_inventory" in tool_names
         assert "wikiskill_context" in tool_names
+        assert "wikiskill_start" in tool_names
+        assert "wikiskill_check" in tool_names
 
     asyncio.run(_check())
 
 
 def test_pydantic_schema_contracts_derivation() -> None:
-    knowledge_path = Path(__file__).parent.parent / "knowledge"
+    knowledge_path = ROOT / "knowledge"
     code = generate_pydantic_code(knowledge_path)
     assert "class AgentSkillConcept(BaseModel):" in code
     assert "class ExperienceConcept(BaseModel):" in code
@@ -87,7 +212,7 @@ def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
 
     info()
     captured = capsys.readouterr()
-    assert "wikiskill runtime v0.1.0" in captured.out
+    assert "wikiskill runtime v0.2.0" in captured.out
 
     context("bootstrap")
     captured = capsys.readouterr()

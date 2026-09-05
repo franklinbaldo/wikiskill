@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import json
+import re
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from okf_parser import Bundle, load_bundle
+from okf_parser.service import check_bundle
 
 
 class WikiSkill:
@@ -21,6 +25,28 @@ class WikiSkill:
         root = Path(path).resolve()
         bundle = load_bundle(root)
         return cls(bundle=bundle, root_path=root)
+
+    def _reload(self) -> Bundle:
+        self.bundle = load_bundle(self.root_path)
+        return self.bundle
+
+    def _records(self, concept_type: str) -> list[dict[str, Any]]:
+        frame = self._reload().concepts.execute()
+        records: list[dict[str, Any]] = []
+        for _, row in frame.iterrows():
+            if str(row["concept_type"]) != concept_type:
+                continue
+            raw = str(row.get("frontmatter_json") or "{}")
+            frontmatter = json.loads(raw)
+            records.append(
+                {
+                    "id": str(row["concept_id"]),
+                    "path": str(row.get("path") or ""),
+                    "title": str(row.get("title") or frontmatter.get("title") or ""),
+                    "frontmatter": frontmatter,
+                }
+            )
+        return records
 
     def inventory(self) -> dict[str, int]:
         """Return counts of concepts grouped by concept_type."""
@@ -71,3 +97,176 @@ class WikiSkill:
             "wiki": relevant_wiki,
             "recent_experiences": recent_experiences[:5],
         }
+
+    def start_run(self, task: str, run_spec_id: str | None = None) -> dict[str, Any]:
+        """Create an intentionally incomplete LoopRun scaffold for a task."""
+        spec = self._select_run_spec(task, run_spec_id)
+        now = datetime.now(UTC)
+        stamp = now.strftime("%Y%m%dT%H%M%SZ")
+        slug = self._slug(task) or "run"
+        run_id = f"runs/{stamp}-{slug}"
+        run_dir = self.root_path / "runs"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        path = run_dir / f"{stamp}-{slug}.md"
+        suffix = 2
+        while path.exists():
+            path = run_dir / f"{stamp}-{slug}-{suffix}.md"
+            run_id = f"runs/{stamp}-{slug}-{suffix}"
+            suffix += 1
+
+        title = task.strip().splitlines()[0][:100] or "Agent run"
+        frontmatter = {
+            "type": "LoopRun",
+            "id": run_id,
+            "title": title,
+            "timestamp": now.isoformat().replace("+00:00", "Z"),
+            "status": "scaffold",
+            "run_spec": spec["id"],
+            "task": task,
+            "readings": [],
+            "goals": [],
+            "decisions": [],
+            "evidence": [],
+            "checks": [],
+        }
+        path.write_text(self._render_markdown(frontmatter, "# Live run\n"), encoding="utf-8")
+        self._reload()
+        return {
+            "run_id": run_id,
+            "path": str(path),
+            "run_spec": spec["id"],
+            "status": "scaffold",
+            "check": self.check_run(run_id),
+        }
+
+    def check_run(self, run_id_or_path: str) -> dict[str, Any]:
+        """Return structural OKF diagnostics plus unsatisfied RunSpec requirements."""
+        structural = check_bundle(
+            str(self.root_path),
+            require_spec="../specs/{slug}.md",
+            normative_spec=True,
+        )
+        run = self._find_record("LoopRun", run_id_or_path)
+        run_fm = run["frontmatter"]
+        spec_ref = str(run_fm.get("run_spec") or "")
+        spec = self._find_record("RunSpec", spec_ref)
+        spec_fm = spec["frontmatter"]
+        run_id = str(run_fm.get("id") or run["id"])
+
+        components = {
+            "readings": self._run_components("RunReading", run_id),
+            "goals": self._run_components("RunGoal", run_id),
+            "decisions": self._run_components("RunDecision", run_id),
+            "evidence": self._run_components("RunEvidence", run_id),
+            "checks": self._run_components("RunCheck", run_id),
+            "outcomes": self._run_components("RunOutcome", run_id),
+        }
+
+        unsatisfied: list[dict[str, Any]] = []
+        requirements = (
+            ("reading", "required_reading_kinds", components["readings"]),
+            ("goal", "required_goal_kinds", components["goals"]),
+            ("evidence", "required_evidence_kinds", components["evidence"]),
+            ("check", "required_check_kinds", components["checks"]),
+        )
+        for label, field, records in requirements:
+            required = [str(item) for item in spec_fm.get(field, [])]
+            present = {str(item["frontmatter"].get("kind") or "") for item in records}
+            for kind in required:
+                if kind not in present:
+                    unsatisfied.append(
+                        {
+                            "requirement": f"{label}:{kind}",
+                            "kind": label,
+                            "expected": kind,
+                            "message": f"Record Run{label.title()} kind '{kind}'.",
+                        }
+                    )
+
+        outcomes = components["outcomes"]
+        if not outcomes:
+            unsatisfied.append(
+                {
+                    "requirement": "outcome",
+                    "kind": "outcome",
+                    "message": "Record a RunOutcome for the state reached in this round.",
+                }
+            )
+        else:
+            allowed = {str(item) for item in spec_fm.get("allowed_result_states", [])}
+            result_state = str(outcomes[-1]["frontmatter"].get("result_state") or "")
+            if allowed and result_state not in allowed:
+                unsatisfied.append(
+                    {
+                        "requirement": "outcome:result_state",
+                        "kind": "outcome",
+                        "expected": sorted(allowed),
+                        "observed": result_state,
+                        "message": "RunOutcome result_state is outside the governing RunSpec.",
+                    }
+                )
+
+        conformant = bool(structural["conformant"]) and not unsatisfied
+        return {
+            "run_id": run_id,
+            "run_spec": spec["id"],
+            "conformant": conformant,
+            "structural": structural,
+            "unsatisfied": unsatisfied,
+            "counts": {name: len(records) for name, records in components.items()},
+        }
+
+    def _select_run_spec(self, task: str, requested: str | None) -> dict[str, Any]:
+        specs = self._records("RunSpec")
+        if not specs:
+            msg = "No RunSpec concepts are available in the knowledge bundle."
+            raise ValueError(msg)
+        if requested is not None:
+            for spec in specs:
+                fm_id = str(spec["frontmatter"].get("id") or "")
+                if requested in {spec["id"], fm_id, spec["path"]}:
+                    return spec
+            msg = f"RunSpec not found: {requested}"
+            raise ValueError(msg)
+
+        keywords = {word for word in re.findall(r"[a-z0-9_-]+", task.lower()) if len(word) > 2}
+
+        def score(spec: dict[str, Any]) -> tuple[int, str]:
+            fm = spec["frontmatter"]
+            corpus = " ".join(
+                [spec["id"], spec["title"], str(fm.get("id") or ""), str(fm.get("title") or "")]
+            ).lower()
+            matches = sum(1 for word in keywords if word in corpus)
+            active = 1 if str(fm.get("status") or "") == "active" else 0
+            return (matches * 10 + active, spec["id"])
+
+        return max(specs, key=score)
+
+    def _find_record(self, concept_type: str, identifier: str) -> dict[str, Any]:
+        for record in self._records(concept_type):
+            fm_id = str(record["frontmatter"].get("id") or "")
+            if identifier in {record["id"], fm_id, record["path"]}:
+                return record
+        msg = f"{concept_type} not found: {identifier}"
+        raise ValueError(msg)
+
+    def _run_components(self, concept_type: str, run_id: str) -> list[dict[str, Any]]:
+        return [
+            record
+            for record in self._records(concept_type)
+            if str(record["frontmatter"].get("run") or "") == run_id
+        ]
+
+    @staticmethod
+    def _slug(value: str) -> str:
+        normalized = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+        return normalized[:48].rstrip("-")
+
+    @staticmethod
+    def _render_markdown(frontmatter: dict[str, Any], body: str) -> str:
+        lines = ["---"]
+        for key, value in frontmatter.items():
+            encoded = json.dumps(value, ensure_ascii=False)
+            lines.append(f"{key}: {encoded}")
+        lines.extend(["---", "", body.rstrip(), ""])
+        return "\n".join(lines)

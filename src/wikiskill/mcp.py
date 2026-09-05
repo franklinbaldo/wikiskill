@@ -39,3 +39,27 @@ def wikiskill_inventory() -> dict[str, int]:
 def wikiskill_context(task: str) -> dict[str, Any]:
     """Retrieve execution and learned context for an agent task."""
     return _get_runtime().context(task)
+
+
+@mcp.tool(
+    name="wikiskill_start",
+    description=(
+        "Create an intentionally incomplete LoopRun scaffold governed by a RunSpec, then "
+        "return its first contract check so the agent can see what to establish next."
+    ),
+)
+def wikiskill_start(task: str, run_spec: str | None = None) -> dict[str, Any]:
+    """Create a live contract-guided run."""
+    return _get_runtime().start_run(task, run_spec)
+
+
+@mcp.tool(
+    name="wikiskill_check",
+    description=(
+        "Validate a live LoopRun with okf-parser and report unsatisfied RunSpec requirements."
+    ),
+    annotations={"readOnlyHint": True},
+)
+def wikiskill_check(run: str) -> dict[str, Any]:
+    """Check the current structural and semantic state of a live run."""
+    return _get_runtime().check_run(run)
