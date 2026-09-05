@@ -85,6 +85,12 @@ def test_run_start_is_incomplete_and_contract_guided(tmp_path: Path) -> None:
     assert "evidence:change" in requirements
     assert "check:tests" in requirements
     assert "outcome" in requirements
+    assert check["next_action"] == {
+        "kind": "reading",
+        "requirement": "reading:repository-guide",
+        "expected": "repository-guide",
+        "message": "Record RunReading kind 'repository-guide'.",
+    }
 
 
 def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> None:
@@ -168,6 +174,11 @@ def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> Non
     assert result["structural"]["conformant"] is True
     assert result["unsatisfied"] == []
     assert result["conformant"] is True
+    assert result["next_action"] == {
+        "kind": "complete",
+        "requirement": None,
+        "message": "Run satisfies its RunSpec.",
+    }
 
 
 def test_fastmcp_tools_registered() -> None:
