@@ -83,6 +83,7 @@ def test_run_start_is_incomplete_and_contract_guided(tmp_path: Path) -> None:
     assert check["conformant"] is False
     requirements = {item["requirement"] for item in check["unsatisfied"]}
     assert "reading:repository-guide" in requirements
+    assert "reading:active-handoffs" in requirements
     assert "goal:project-advance" in requirements
     assert "evidence:change" in requirements
     assert "check:tests" in requirements
@@ -103,7 +104,14 @@ def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> Non
     runs = knowledge_path / "runs"
 
     for index, kind in enumerate(
-        ["repository-guide", "open-issues", "open-prs", "okf-knowledge", "recent-runs"],
+        [
+            "repository-guide",
+            "open-issues",
+            "open-prs",
+            "okf-knowledge",
+            "recent-runs",
+            "active-handoffs",
+        ],
         start=1,
     ):
         _write_concept(
