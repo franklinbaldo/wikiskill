@@ -20,9 +20,7 @@ class HandoffWikiSkill(BaseWikiSkill):
     def active_handoffs(self, task: str | None = None) -> list[dict[str, Any]]:
         """List active handoffs, ranking task-relevant work first."""
         keywords = {
-            word
-            for word in re.findall(r"[a-z0-9_-]+", (task or "").lower())
-            if len(word) > 2
+            word for word in re.findall(r"[a-z0-9_-]+", (task or "").lower()) if len(word) > 2
         }
         handoffs: list[dict[str, Any]] = []
         for record in self._records("Handoff"):
