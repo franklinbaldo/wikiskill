@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from okf_parser.service import check_bundle
@@ -159,7 +158,7 @@ class HandoffWikiSkill(BaseWikiSkill):
         return result
 
     def check_run(self, run_id_or_path: str) -> dict[str, Any]:
-        """Require a Handoff when a run ends with material work still unfinished."""
+        """Require a Handoff when a run declares material work partial."""
         result = super().check_run(run_id_or_path)
         run = self._find_record("LoopRun", run_id_or_path)
         run_id = str(run["frontmatter"].get("id") or run["id"])
@@ -167,17 +166,14 @@ class HandoffWikiSkill(BaseWikiSkill):
         if not outcomes:
             return result
 
-        outcome = outcomes[-1]["frontmatter"]
-        result_state = str(outcome.get("result_state") or "")
-        next_move = str(outcome.get("next_move") or "").strip()
-        unfinished = bool(next_move) and result_state not in {"green", "complete"}
+        work_status = str(outcomes[-1]["frontmatter"].get("work_status") or "")
         active_for_run = [
             item
             for item in self._records("Handoff")
             if str(item["frontmatter"].get("status") or "") == _HANDOFF_STATUS_ACTIVE
             and str(item["frontmatter"].get("created_by_run") or "") == run_id
         ]
-        if unfinished and not active_for_run:
+        if work_status == "partial" and not active_for_run:
             requirement = {
                 "requirement": "handoff",
                 "kind": "handoff",
