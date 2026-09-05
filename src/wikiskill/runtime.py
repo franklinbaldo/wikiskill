@@ -9,7 +9,7 @@ from okf_parser import Bundle, load_bundle
 
 
 class WikiSkill:
-    """Opinionated agent learning runtime backed by Open Knowledge Format (OKF)."""
+    """Contract-guided agent execution and learning runtime backed by OKF."""
 
     def __init__(self, bundle: Bundle, root_path: Path) -> None:
         self.bundle = bundle
@@ -32,10 +32,11 @@ class WikiSkill:
         return dict(zip(df["concept_type"], df["count"], strict=True))
 
     def context(self, task: str) -> dict[str, Any]:
-        """Extract relevant skills, wiki entries, and recent experiences for a given task."""
+        """Extract execution contracts and learned context relevant to a task."""
         keywords = [k.lower() for k in task.split() if len(k) > 2]
 
         concepts_df = self.bundle.concepts.execute()
+        relevant_run_specs: list[dict[str, Any]] = []
         relevant_skills: list[dict[str, Any]] = []
         relevant_wiki: list[dict[str, Any]] = []
         recent_experiences: list[dict[str, Any]] = []
@@ -54,7 +55,9 @@ class WikiSkill:
                 "path": str(row.get("path") or ""),
             }
 
-            if ctype == "AgentSkill" and matched:
+            if ctype == "RunSpec" and matched:
+                relevant_run_specs.append(record)
+            elif ctype == "AgentSkill" and matched:
                 relevant_skills.append(record)
             elif ctype == "WikiEntry" and matched:
                 relevant_wiki.append(record)
@@ -63,6 +66,7 @@ class WikiSkill:
 
         return {
             "task": task,
+            "run_specs": relevant_run_specs,
             "skills": relevant_skills,
             "wiki": relevant_wiki,
             "recent_experiences": recent_experiences[:5],
