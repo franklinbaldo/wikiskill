@@ -47,7 +47,7 @@ def test_preview_experience_is_pure_and_links_run(tmp_path: Path) -> None:
     preview = ws.preview_experience(**_experience_kwargs())
 
     assert preview["id"] == "exp-contract-guided-recording"
-    assert preview["path"] == "experiences/exp-contract-guided-recording.md"
+    assert preview["path"] == "experiences/records/exp-contract-guided-recording.md"
     assert preview["content"].startswith('---\ntype: "Experience"\n')
     assert 'run: "runs/20260905-contract-guided-runtime"' in preview["content"]
     assert "# Experience Recording Dogfood" in preview["content"]
@@ -67,7 +67,7 @@ def test_record_experience_writes_valid_okf_and_refreshes_runtime(tmp_path: Path
     target = knowledge_path / result_path
     assert result == {
         "id": "exp-contract-guided-recording",
-        "path": "experiences/exp-contract-guided-recording.md",
+        "path": "experiences/records/exp-contract-guided-recording.md",
         "written": True,
     }
     assert target.read_text(encoding="utf-8") == preview["content"]
@@ -118,4 +118,4 @@ def test_cli_experience_preview_and_record(
     experience_record(path=str(knowledge_path), **kwargs)
     captured = capsys.readouterr()
     assert f"Recorded Experience {kwargs['experience_id']}" in captured.out
-    assert (knowledge_path / f"experiences/{kwargs['experience_id']}.md").exists()
+    assert (knowledge_path / f"experiences/records/{kwargs['experience_id']}.md").exists()
