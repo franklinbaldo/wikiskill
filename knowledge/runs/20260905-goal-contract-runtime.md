@@ -6,9 +6,9 @@ kind: project-advance
 goal: "Make contract-guided execution a usable, typed, self-hosted WikiSkill runtime rather than only an architectural proposal."
 rationale: "The pivot is useful only if agents can start/check real runs and every run component has a first-class OKF contract."
 success_signal: "start/check is merged, all run types export from declared schemas, and WikiSkill persists a real live run governed by its own RunSpec."
-status: active
+status: achieved
 ---
 
 # Project advance goal
 
-This goal spans the executable runtime, the upstream parser capability it exposed, and the first repository-persisted dogfood run.
+The success signal was reached: executable start/check is merged, every run component has a declared exportable schema, and WikiSkill has persisted and completed a real run governed by its own RunSpec.

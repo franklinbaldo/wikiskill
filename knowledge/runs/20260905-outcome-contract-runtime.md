@@ -1,0 +1,22 @@
+---
+type: RunOutcome
+id: run-outcomes/20260905-contract-runtime
+run: runs/20260905-contract-guided-runtime
+result_state: merged
+summary: "Contract-guided execution is now implemented, typed, backed by declared-empty-type export in okf-parser, and dogfooded by a real persisted WikiSkill run."
+next_move: "Use wikiskill start/check as the default development-loop entrypoint and let future runs evolve RunSpec requirements from observed experience."
+goals_advanced:
+  - run-goals/20260905-contract-runtime
+evidence:
+  - run-evidence/20260905-start-check-runtime
+  - run-evidence/20260905-contract-verification
+checks:
+  - run-checks/20260905-okf
+  - run-checks/20260905-tests
+experiences_recorded:
+  - experiences/20260905-contract-first-types
+---
+
+# Run outcome
+
+The first self-hosted WikiSkill run reached its declared success signal and produced a reusable Experience from an architectural fact discovered during execution.
