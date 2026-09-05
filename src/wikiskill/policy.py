@@ -30,10 +30,30 @@ _OUTPUT_FIELDS = {
     "AccessPolicy": "access_policy_path",
     "OutputPolicy": "output_policy_path",
 }
+_DEFAULT_OUTPUTS = {
+    "Experience": "experiences/records",
+    "LoopRun": "experiences/runs",
+    "RunReading": "experiences/runs",
+    "RunGoal": "experiences/runs",
+    "RunDecision": "experiences/runs",
+    "RunEvidence": "experiences/runs",
+    "RunCheck": "experiences/runs",
+    "RunOutcome": "experiences/runs",
+    "Handoff": "experiences/handoffs",
+    "WikiEntry": "wiki/entries",
+    "AgentSkill": "skills/active",
+    "SkillProposal": "skills/proposals",
+    "SkillEvaluation": "skills/evaluations",
+    "SessionType": "skills/session-types",
+    "RunSpec": "skills/run-specs",
+    "ContextPolicy": "skills/policies/context",
+    "AccessPolicy": "skills/policies/access",
+    "OutputPolicy": "skills/policies/output",
+}
 
 
 class PolicyWikiSkill(SessionWikiSkill):
-    """Session runtime that resolves and explains policy composition."""
+    """Session runtime that resolves, explains, and applies policy composition."""
 
     @classmethod
     def open(cls, path: str | Path = "knowledge") -> PolicyWikiSkill:
@@ -64,10 +84,7 @@ class PolicyWikiSkill(SessionWikiSkill):
     def policy_for(self, session_type_id: str | None = None) -> dict[str, Any]:
         """Return the effective policies for one SessionType."""
         session = self._select_session_type(session_type_id)
-        return {
-            "session_type": session["id"],
-            **session.get("policies", {}),
-        }
+        return {"session_type": session["id"], **session.get("policies", {})}
 
     def context(self, task: str, session_type_id: str | None = None) -> dict[str, Any]:
         """Return context plus explicit policy guidance for the selected session."""
@@ -99,19 +116,55 @@ class PolicyWikiSkill(SessionWikiSkill):
 
     def output_path(self, concept_type: str, session_type_id: str | None = None) -> str:
         """Resolve the semantic output directory for a concept type."""
-        session = self._select_session_type(session_type_id)
+        fallback = _DEFAULT_OUTPUTS.get(concept_type, concept_type.lower())
+        try:
+            session = self._select_session_type(session_type_id)
+        except ValueError:
+            return fallback
         policy = session.get("policies", {}).get("output_policy")
         field = _OUTPUT_FIELDS.get(concept_type)
         if not policy or field is None:
-            return super()._output_dir(concept_type).as_posix()
+            return fallback
         value = str(policy.get(field) or "")
-        if not value:
-            return super()._output_dir(concept_type).as_posix()
-        return value.strip("/")
+        return value.strip("/") or fallback
 
-    def _output_dir(self, concept_type: str) -> Path:
-        try:
-            relative = self.output_path(concept_type)
-        except (ValueError, RecursionError):
-            return super()._output_dir(concept_type)
-        return Path(relative)
+    def preview_experience(self, **kwargs: Any) -> dict[str, str]:
+        """Preview Experience in the policy-selected experience namespace."""
+        preview = super().preview_experience(**kwargs)
+        filename = Path(preview["path"]).name
+        relative = Path(self.output_path("Experience")) / filename
+        target = self.root_path / relative
+        if target.exists():
+            raise FileExistsError(target)
+        preview["path"] = relative.as_posix()
+        return preview
+
+    def start_run(
+        self,
+        task: str,
+        run_spec_id: str | None = None,
+        session_type_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Start a session and place its LoopRun in the configured run namespace."""
+        result = super().start_run(task, run_spec_id, session_type_id)
+        old_path = Path(result["path"])
+        target_dir = self.root_path / self.output_path("LoopRun", result["session_type"])
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / old_path.name
+        old_path.replace(target)
+        self._reload()
+        result["path"] = str(target)
+        result["check"] = self.check_run(result["run_id"])
+        return result
+
+    def create_handoff(self, **kwargs: Any) -> dict[str, Any]:
+        """Create a Handoff and route it under experiences/handoffs by policy."""
+        result = super().create_handoff(**kwargs)
+        old_path = Path(result["path"])
+        target_dir = self.root_path / self.output_path("Handoff")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / old_path.name
+        old_path.replace(target)
+        self._reload()
+        result["path"] = str(target)
+        return result
