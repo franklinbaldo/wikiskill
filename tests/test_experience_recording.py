@@ -61,8 +61,10 @@ def test_record_experience_writes_valid_okf_and_refreshes_runtime(tmp_path: Path
     preview = ws.preview_experience(**_experience_kwargs())
 
     result = ws.record_experience(**_experience_kwargs())
+    result_path = result["path"]
+    assert isinstance(result_path, str)
 
-    target = knowledge_path / result["path"]
+    target = knowledge_path / result_path
     assert result == {
         "id": "exp-contract-guided-recording",
         "path": "experiences/exp-contract-guided-recording.md",
@@ -95,7 +97,9 @@ def test_fastmcp_experience_tools_execute(tmp_path: Path) -> None:
 
     result = wikiskill_experience_record(path=str(knowledge_path), **kwargs)
     assert result["written"] is True
-    assert (knowledge_path / result["path"]).exists()
+    result_path = result["path"]
+    assert isinstance(result_path, str)
+    assert (knowledge_path / result_path).exists()
 
 
 def test_cli_experience_preview_and_record(
