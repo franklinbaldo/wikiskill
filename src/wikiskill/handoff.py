@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import re
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
+from okf_parser import load_bundle
 from okf_parser.service import check_bundle
 
 from wikiskill.runtime import WikiSkill as BaseWikiSkill
@@ -16,6 +18,12 @@ _HANDOFF_STATUS_ARCHIVED = "archived"
 
 class HandoffWikiSkill(BaseWikiSkill):
     """WikiSkill runtime with resumable cross-session handoffs."""
+
+    @classmethod
+    def open(cls, path: str | Path = "knowledge") -> HandoffWikiSkill:
+        """Open an OKF bundle while preserving the Handoff-enabled runtime type."""
+        root = Path(path).resolve()
+        return cls(bundle=load_bundle(root), root_path=root)
 
     def active_handoffs(self, task: str | None = None) -> list[dict[str, Any]]:
         """List active handoffs, ranking task-relevant work first."""
