@@ -9,7 +9,7 @@ from wikiskill.runtime import WikiSkill
 
 app = cyclopts.App(
     name="wikiskill",
-    help="Persistent agent learning runtime built on OKF.",
+    help="Contract-guided agent execution and persistent learning runtime built on OKF.",
     version=__version__,
 )
 
@@ -30,16 +30,19 @@ def serve() -> None:
 
 @app.command
 def context(task: str) -> None:
-    """Show context for a given agent task."""
+    """Show contract and learned context for a given agent task."""
     ws = WikiSkill.open("knowledge")
     res = ws.context(task)
     print(f"--- Context for: {task} ---")
+    print(f"RunSpecs found ({len(res['run_specs'])}):")
+    for spec in res["run_specs"]:
+        print(f"  - [{spec['id']}] {spec['title']}")
     print(f"Skills found ({len(res['skills'])}):")
-    for s in res["skills"]:
-        print(f"  - [{s['id']}] {s['title']}")
+    for skill in res["skills"]:
+        print(f"  - [{skill['id']}] {skill['title']}")
     print(f"Wiki knowledge found ({len(res['wiki'])}):")
-    for w in res["wiki"]:
-        print(f"  - [{w['id']}] {w['title']}")
+    for wiki in res["wiki"]:
+        print(f"  - [{wiki['id']}] {wiki['title']}")
 
 
 def main() -> None:
