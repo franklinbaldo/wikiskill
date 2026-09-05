@@ -31,7 +31,7 @@ def _temp_bundle(tmp_path: Path) -> Path:
 
 
 def test_version() -> None:
-    assert __version__ == "0.2.4"
+    assert __version__ == "0.2.5"
 
 
 def test_bundle_conformance() -> None:
@@ -45,6 +45,7 @@ def test_bundle_conformance() -> None:
     assert "WikiEntry" in concept_types
     assert "AgentSkill" in concept_types
     assert "RunSpec" in concept_types
+    assert "SessionType" in concept_types
 
 
 def test_wikiskill_runtime_inventory_and_context() -> None:
@@ -55,6 +56,7 @@ def test_wikiskill_runtime_inventory_and_context() -> None:
     assert inv["WikiEntry"] >= 1
     assert inv["AgentSkill"] >= 1
     assert inv["RunSpec"] >= 1
+    assert inv["SessionType"] >= 2
 
     ctx = ws.context(task="wikiskill development")
     assert ctx["task"] == "wikiskill development"
@@ -77,6 +79,8 @@ def test_run_start_is_incomplete_and_contract_guided(tmp_path: Path) -> None:
     )
 
     assert started["status"] == "scaffold"
+    assert started["session_type"] == "session-types/development"
+    assert started["session"]["inheritance"] == ["session-types/base", "session-types/development"]
     assert Path(started["path"]).exists()
     assert "active_handoffs" in started
     check = started["check"]
@@ -215,10 +219,18 @@ def test_pydantic_schema_contracts_derivation() -> None:
     assert "class WikiEntryConcept(BaseModel):" in code
     assert "class RunSpecConcept(BaseModel):" in code
     assert "class HandoffConcept(BaseModel):" in code
+    assert "class SessionTypeConcept(BaseModel):" in code
 
     contracts = get_schema_contracts(knowledge_path)
     contract_types = {c.concept_type for c in contracts}
-    assert contract_types >= {"AgentSkill", "Experience", "WikiEntry", "RunSpec", "Handoff"}
+    assert contract_types >= {
+        "AgentSkill",
+        "Experience",
+        "WikiEntry",
+        "RunSpec",
+        "Handoff",
+        "SessionType",
+    }
 
 
 def test_mcp_tool_execution() -> None:
@@ -239,7 +251,7 @@ def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
 
     info()
     captured = capsys.readouterr()
-    assert "wikiskill runtime v0.2.4" in captured.out
+    assert "wikiskill runtime v0.2.5" in captured.out
 
     context("bootstrap")
     captured = capsys.readouterr()
