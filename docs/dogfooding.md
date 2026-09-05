@@ -1,23 +1,57 @@
-﻿# Progressive Dogfooding Protocol
+# Progressive Dogfooding Protocol
 
-`wikiskill` adheres to an avid self-application rule: **the development of this library is guided, recorded, and evolved by `wikiskill` itself.**
+`wikiskill` develops itself through the same execution and learning runtime it offers to consumers.
 
----
+## Contract-guided development
 
-## Dogfooding Phases
+Before substantive work, an agent development session should create a live `LoopRun` governed by `knowledge/run-specs/wikiskill-development.md`.
 
-### Phase 0: Manual Bootstrap
-- Initial `Experience` and `WikiEntry` concepts are written by hand following OKF specs.
-- Every manual entry explicitly states that it is a bootstrap artifact.
+The run starts intentionally incomplete and is filled as the session advances with:
 
-### Phase 1: Automated Experience Recording
-- As soon as `wikiskill experience record` (CLI/Python API) passes tests, all subsequent engineering steps and agent findings are recorded via the tool.
+- `RunReading` for repository guidance, issues, PRs, OKF knowledge and recent runs;
+- `RunGoal` with an observable `success_signal`;
+- `RunDecision` for consequential choices;
+- `RunEvidence` for changes and observed results;
+- `RunCheck` for OKF/tests/other verification;
+- `RunOutcome` describing the state reached and next natural move.
 
-### Phase 2: Knowledge Consolidation
-- When `wikiskill wiki consolidate` is operational, learnings and patterns discovered during development are compiled through the runtime.
+The agent repeatedly validates the bundle with `okf-parser` and uses unsatisfied run requirements as operational feedback.
 
-### Phase 3: Skill Proposals & Evaluation
-- Changes to core workflow skills (e.g. `develop-feature`, `evaluate-skill`) are handled strictly via `SkillProposal` and `SkillEvaluation`.
+## Learning after execution
 
-### Phase 4: MCP-Driven Agent Operation
-- Agent sessions operate the repository primarily via `wikiskill_*` FastMCP tools.
+The run graph is the evidence-rich source for the persistent learning cycle:
+
+```text
+LoopRun / RunEvidence
+  -> Experience
+  -> WikiEntry
+  -> AgentSkill / SkillProposal
+  -> SkillEvaluation
+  -> evolved skill and/or RunSpec
+```
+
+## Dogfooding phases
+
+### Phase 0 — Manual contract bootstrap
+
+Core execution and learning specs are written by hand in OKF while the runtime surface is being implemented.
+
+### Phase 1 — Contract-guided manual runs
+
+Development sessions use the dogfood `RunSpec` and maintain `LoopRun` plus typed run components directly in the bundle. `okf-parser` supplies validation feedback.
+
+### Phase 2 — Runtime-assisted start/check
+
+Once `wikiskill start` / `wikiskill check` and equivalent FastMCP tools exist, run scaffolding and requirement inspection move behind the runtime API.
+
+### Phase 3 — Experience consolidation
+
+Completed and partial run evidence is distilled into `Experience` and then into durable `WikiEntry` knowledge.
+
+### Phase 4 — Skill and RunSpec evolution
+
+Changes to procedural skills and execution contracts are proposed/evaluated through `SkillProposal` and `SkillEvaluation`, retaining asymmetric rollback: rejected procedures can roll back while evidence and knowledge remain.
+
+### Phase 5 — MCP-driven operation
+
+Agent sessions primarily operate through `wikiskill_*` FastMCP tools, with the OKF graph remaining the durable source of truth.

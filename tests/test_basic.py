@@ -19,12 +19,13 @@ def test_bundle_conformance() -> None:
     knowledge_path = Path(__file__).parent.parent / "knowledge"
     bundle = load_bundle(knowledge_path)
     count = bundle.concepts.count().execute()
-    assert count >= 3
+    assert count >= 4
 
     concept_types = set(bundle.concepts.select("concept_type").distinct().execute()["concept_type"])
     assert "Experience" in concept_types
     assert "WikiEntry" in concept_types
     assert "AgentSkill" in concept_types
+    assert "RunSpec" in concept_types
 
 
 def test_wikiskill_runtime_inventory_and_context() -> None:
@@ -34,12 +35,16 @@ def test_wikiskill_runtime_inventory_and_context() -> None:
     assert inv["Experience"] >= 1
     assert inv["WikiEntry"] >= 1
     assert inv["AgentSkill"] >= 1
+    assert inv["RunSpec"] >= 1
 
-    ctx = ws.context(task="bootstrap repository setup")
-    assert ctx["task"] == "bootstrap repository setup"
-    assert len(ctx["skills"]) >= 1
-    assert any(s["id"] == "skills/bootstrap-repository" for s in ctx["skills"])
-    assert len(ctx["recent_experiences"]) >= 1
+    ctx = ws.context(task="wikiskill development")
+    assert ctx["task"] == "wikiskill development"
+    assert any(s["id"] == "run-specs/wikiskill-development" for s in ctx["run_specs"])
+
+    bootstrap_ctx = ws.context(task="bootstrap repository setup")
+    assert len(bootstrap_ctx["skills"]) >= 1
+    assert any(s["id"] == "skills/bootstrap-repository" for s in bootstrap_ctx["skills"])
+    assert len(bootstrap_ctx["recent_experiences"]) >= 1
 
 
 def test_fastmcp_tools_registered() -> None:
@@ -58,10 +63,11 @@ def test_pydantic_schema_contracts_derivation() -> None:
     assert "class AgentSkillConcept(BaseModel):" in code
     assert "class ExperienceConcept(BaseModel):" in code
     assert "class WikiEntryConcept(BaseModel):" in code
+    assert "class RunSpecConcept(BaseModel):" in code
 
     contracts = get_schema_contracts(knowledge_path)
     contract_types = {c.concept_type for c in contracts}
-    assert contract_types >= {"AgentSkill", "Experience", "WikiEntry"}
+    assert contract_types >= {"AgentSkill", "Experience", "WikiEntry", "RunSpec"}
 
 
 def test_mcp_tool_execution() -> None:
@@ -69,10 +75,11 @@ def test_mcp_tool_execution() -> None:
 
     inv = wikiskill_inventory()
     assert inv["Experience"] >= 1
+    assert inv["RunSpec"] >= 1
 
-    ctx = wikiskill_context("bootstrap")
-    assert ctx["task"] == "bootstrap"
-    assert len(ctx["skills"]) >= 1
+    ctx = wikiskill_context("wikiskill development")
+    assert ctx["task"] == "wikiskill development"
+    assert len(ctx["run_specs"]) >= 1
 
 
 def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:

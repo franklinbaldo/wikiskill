@@ -30,9 +30,12 @@ def wikiskill_inventory() -> dict[str, int]:
 
 @mcp.tool(
     name="wikiskill_context",
-    description="Retrieve relevant skills, wiki knowledge, and recent experiences for a task.",
+    description=(
+        "Retrieve task-relevant RunSpecs, skills, wiki knowledge, and recent experiences "
+        "for contract-guided agent execution."
+    ),
     annotations={"readOnlyHint": True},
 )
 def wikiskill_context(task: str) -> dict[str, Any]:
-    """Retrieve relevant context for an agent given a task description."""
+    """Retrieve execution and learned context for an agent task."""
     return _get_runtime().context(task)
