@@ -2,5 +2,5 @@
 
 from wikiskill.runtime import WikiSkill
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __all__ = ["WikiSkill", "__version__"]
