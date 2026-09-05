@@ -4,6 +4,8 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
+
 from wikiskill import WikiSkill
 
 ROOT = Path(__file__).parent.parent
@@ -84,13 +86,71 @@ def test_partial_run_requires_handoff_and_future_run_archives_it(tmp_path: Path)
     }
     assert WikiSkill.open(knowledge_path).active_handoffs() == []
 
-    handoff_doc = (knowledge_path / "handoffs" / "handoff-runtime.md").read_text(
-        encoding="utf-8"
-    )
+    handoff_doc = (knowledge_path / "handoffs" / "handoff-runtime.md").read_text(encoding="utf-8")
     assert 'status: "archived"' in handoff_doc
     assert f'continued_by_run: "{continuing_run}"' in handoff_doc
     assert "archived_at:" in handoff_doc
     assert "resolution:" in handoff_doc
+
+
+def test_handoff_mcp_surface_executes_full_lifecycle(tmp_path: Path) -> None:
+    from wikiskill.mcp import (
+        wikiskill_handoff_continue,
+        wikiskill_handoff_create,
+        wikiskill_handoffs,
+    )
+
+    knowledge_path = _temp_bundle(tmp_path)
+    source = WikiSkill.open(knowledge_path).start_run(
+        "source handoff", "run-specs/wikiskill-development"
+    )
+    continuing = WikiSkill.open(knowledge_path).start_run(
+        "continue handoff", "run-specs/wikiskill-development"
+    )
+
+    created = wikiskill_handoff_create(
+        handoff_id="mcp-handoff",
+        title="Continue through MCP",
+        created_by_run=source["run_id"],
+        state="Source run left material work.",
+        next_action="Resume it through the MCP surface.",
+        references=["#38"],
+        path=str(knowledge_path),
+    )
+    assert created["status"] == "active"
+
+    active = wikiskill_handoffs("MCP handoff", path=str(knowledge_path))
+    assert active[0]["id"] == "handoffs/mcp-handoff"
+
+    archived = wikiskill_handoff_continue(
+        handoff="handoffs/mcp-handoff",
+        continued_by_run=continuing["run_id"],
+        resolution="The continuing run resumed the MCP handoff.",
+        path=str(knowledge_path),
+    )
+    assert archived["status"] == "archived"
+    assert wikiskill_handoffs(path=str(knowledge_path)) == []
+
+
+def test_handoff_rejects_invalid_continuation(tmp_path: Path) -> None:
+    knowledge_path = _temp_bundle(tmp_path)
+    ws = WikiSkill.open(knowledge_path)
+    source = ws.start_run("source handoff", "run-specs/wikiskill-development")
+    source_run = source["run_id"]
+    ws.create_handoff(
+        handoff_id="same-run",
+        title="Cannot continue in same run",
+        created_by_run=source_run,
+        state="Work remains.",
+        next_action="A future run must resume it.",
+    )
+
+    with pytest.raises(ValueError, match="later LoopRun"):
+        WikiSkill.open(knowledge_path).continue_handoff(
+            handoff="handoffs/same-run",
+            continued_by_run=source_run,
+            resolution="This must be rejected.",
+        )
 
 
 def test_complete_run_does_not_require_handoff(tmp_path: Path) -> None:
