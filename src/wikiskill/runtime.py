@@ -140,7 +140,7 @@ class WikiSkill:
         }
 
     def check_run(self, run_id_or_path: str) -> dict[str, Any]:
-        """Return structural OKF diagnostics plus unsatisfied RunSpec requirements."""
+        """Return structural diagnostics, unmet requirements, and the next typed action."""
         structural = check_bundle(
             str(self.root_path),
             require_spec="../specs/{slug}.md",
@@ -207,12 +207,28 @@ class WikiSkill:
                 )
 
         conformant = bool(structural["conformant"]) and not unsatisfied
+        if unsatisfied:
+            next_action = dict(unsatisfied[0])
+        elif conformant:
+            next_action = {
+                "kind": "complete",
+                "requirement": None,
+                "message": "Run satisfies its RunSpec.",
+            }
+        else:
+            next_action = {
+                "kind": "structural",
+                "requirement": "okf",
+                "message": "Resolve structural OKF diagnostics before continuing.",
+            }
+
         return {
             "run_id": run_id,
             "run_spec": spec["id"],
             "conformant": conformant,
             "structural": structural,
             "unsatisfied": unsatisfied,
+            "next_action": next_action,
             "counts": {name: len(records) for name, records in components.items()},
         }
 
