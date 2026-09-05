@@ -3,7 +3,7 @@ type: LoopRun
 id: runs/20260905-contract-guided-runtime
 title: Continue contract-guided WikiSkill implementation
 timestamp: "2026-09-05T14:47:00Z"
-status: completed
+status: closed
 run_spec: run-specs/wikiskill-development
 task: "Continue implementing the contract-guided WikiSkill runtime"
 readings:
@@ -22,8 +22,11 @@ evidence:
 checks:
   - run-checks/20260905-okf
   - run-checks/20260905-tests
+outcome: run-outcomes/20260905-contract-runtime
+experiences_recorded:
+  - experiences/20260905-contract-first-types
 ---
 
 # Live development run
 
-This is WikiSkill's first repository-persisted live run. It began as an intentionally incomplete operational scaffold and was completed by following the requirements of its governing RunSpec through implementation, verification, and outcome.
+This is WikiSkill's first repository-persisted live run. It began as an intentionally incomplete operational scaffold, was advanced by its RunSpec requirements, and closed with typed evidence, checks, outcome, and a reusable Experience.
