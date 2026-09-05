@@ -9,13 +9,11 @@ from fastmcp import FastMCP
 
 from wikiskill.runtime import WikiSkill
 
-mcp = FastMCP(
-    name="wikiskill",
-)
+mcp = FastMCP(name="wikiskill")
 
 
-def _get_runtime() -> WikiSkill:
-    return WikiSkill.open(Path("knowledge"))
+def _get_runtime(path: str | Path = "knowledge") -> WikiSkill:
+    return WikiSkill.open(Path(path))
 
 
 @mcp.tool(
@@ -56,10 +54,90 @@ def wikiskill_start(task: str, run_spec: str | None = None) -> dict[str, Any]:
 @mcp.tool(
     name="wikiskill_check",
     description=(
-        "Validate a live LoopRun with okf-parser and report unsatisfied RunSpec requirements."
+        "Validate a live LoopRun and return unmet RunSpec requirements plus the next action."
     ),
     annotations={"readOnlyHint": True},
 )
 def wikiskill_check(run: str) -> dict[str, Any]:
     """Check the current structural and semantic state of a live run."""
     return _get_runtime().check_run(run)
+
+
+@mcp.tool(
+    name="wikiskill_experience_preview",
+    description="Preview an OKF Experience document without writing it to the bundle.",
+    annotations={
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    },
+)
+def wikiskill_experience_preview(
+    experience_id: str,
+    title: str,
+    timestamp: str,
+    status: str,
+    body: str,
+    path: str = "knowledge",
+    skill_used: str | None = None,
+    skill_version: str | None = None,
+    task: str | None = None,
+    error_code: str | None = None,
+    context: str | None = None,
+    run: str | None = None,
+) -> dict[str, str]:
+    """Preview one Experience using the canonical runtime rendering path."""
+    return _get_runtime(path).preview_experience(
+        experience_id=experience_id,
+        title=title,
+        timestamp=timestamp,
+        status=status,
+        body=body,
+        skill_used=skill_used,
+        skill_version=skill_version,
+        task=task,
+        error_code=error_code,
+        context=context,
+        run=run,
+    )
+
+
+@mcp.tool(
+    name="wikiskill_experience_record",
+    description="Write one validated OKF Experience document to the WikiSkill bundle.",
+    annotations={
+        "readOnlyHint": False,
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": False,
+    },
+)
+def wikiskill_experience_record(
+    experience_id: str,
+    title: str,
+    timestamp: str,
+    status: str,
+    body: str,
+    path: str = "knowledge",
+    skill_used: str | None = None,
+    skill_version: str | None = None,
+    task: str | None = None,
+    error_code: str | None = None,
+    context: str | None = None,
+    run: str | None = None,
+) -> dict[str, str | bool]:
+    """Persist one Experience through the canonical WikiSkill runtime."""
+    return _get_runtime(path).record_experience(
+        experience_id=experience_id,
+        title=title,
+        timestamp=timestamp,
+        status=status,
+        body=body,
+        skill_used=skill_used,
+        skill_version=skill_version,
+        task=task,
+        error_code=error_code,
+        context=context,
+        run=run,
+    )

@@ -1,4 +1,4 @@
-﻿---
+---
 type: ConceptSpecification
 concept_type: Experience
 description: "Raw episodic execution trace or observation recorded by an agent."
@@ -23,6 +23,7 @@ An `Experience` represents an episodic record of what happened during an executi
 - `task`: High-level goal or task description
 - `error_code`: Error identifier if applicable
 - `context`: Contextual notes or environment flags
+- `run`: Link to the `LoopRun` whose execution produced this Experience
 
 ## Content Structure
 
@@ -30,3 +31,5 @@ The body should describe:
 1. **Context & Intent**: What the agent wanted to achieve.
 2. **Action & Observed Output**: Concrete trace, response, or command output.
 3. **Findings**: What was surprising, what broke, or what succeeded.
+
+When the Experience emerges from a contract-guided run, `run` preserves provenance back to the operational state and evidence that produced the learning.

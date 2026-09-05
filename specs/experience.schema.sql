@@ -1,4 +1,4 @@
-﻿CREATE TABLE "Experience" (
+CREATE TABLE "Experience" (
     "id" VARCHAR,
     "title" VARCHAR,
     "timestamp" TIMESTAMPTZ,
@@ -7,5 +7,6 @@
     "skill_version" VARCHAR,
     "task" VARCHAR,
     "error_code" VARCHAR,
-    "context" VARCHAR
+    "context" VARCHAR,
+    "run" VARCHAR
 );
