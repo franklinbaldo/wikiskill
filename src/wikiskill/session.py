@@ -56,7 +56,9 @@ class SessionWikiSkill(HandoffWikiSkill):
         except ValueError:
             sessions = self._records("SessionType")
             if not sessions:
-                raise ValueError("No SessionType concepts are available in the knowledge bundle.")
+                raise ValueError(
+                    "No SessionType concepts are available in the knowledge bundle."
+                ) from None
             return self.effective_session_type(sessions[0]["id"])
 
     def start_run(
