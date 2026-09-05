@@ -109,7 +109,9 @@ class WikiSkill:
             "context": context,
             "run": run,
         }
-        frontmatter.update({key: value for key, value in optional_fields.items() if value is not None})
+        frontmatter.update(
+            {key: value for key, value in optional_fields.items() if value is not None}
+        )
         content = self._render_markdown(frontmatter, body)
         return {
             "id": experience_id,
