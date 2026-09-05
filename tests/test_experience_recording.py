@@ -48,7 +48,7 @@ def test_preview_experience_is_pure_and_links_run(tmp_path: Path) -> None:
 
     assert preview["id"] == "exp-contract-guided-recording"
     assert preview["path"] == "experiences/exp-contract-guided-recording.md"
-    assert preview["content"].startswith("---\ntype: \"Experience\"\n")
+    assert preview["content"].startswith('---\ntype: "Experience"\n')
     assert 'run: "runs/20260905-contract-guided-runtime"' in preview["content"]
     assert "# Experience Recording Dogfood" in preview["content"]
     assert not (knowledge_path / preview["path"]).exists()
