@@ -105,9 +105,7 @@ def wikiskill_handoff_create(
 
 @mcp.tool(
     name="wikiskill_handoff_continue",
-    description=(
-        "Archive an active Handoff and record the later LoopRun that resumed the work."
-    ),
+    description=("Archive an active Handoff and record the later LoopRun that resumed the work."),
     annotations={
         "readOnlyHint": False,
         "destructiveHint": False,
