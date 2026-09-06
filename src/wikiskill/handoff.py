@@ -92,7 +92,11 @@ class HandoffWikiSkill(BaseWikiSkill):
             goal = self._find_record("RunGoal", goal_identifier)
             goal_fm = goal["frontmatter"]
             if str(goal_fm.get("run") or "") != run_id:
-                raise ValueError(f"Handoff goal does not belong to created_by_run: {goal_identifier}")
+                msg = (
+                    "Handoff goal does not belong to created_by_run: "
+                    f"{goal_identifier}"
+                )
+                raise ValueError(msg)
             canonical_goal = str(goal_fm.get("id") or goal["id"])
             if canonical_goal not in linked_goals:
                 linked_goals.append(canonical_goal)
@@ -209,7 +213,10 @@ class HandoffWikiSkill(BaseWikiSkill):
                 {
                     "requirement": "goal:terminal",
                     "kind": "goal-state",
-                    "message": "Record at least one RunGoal and resolve it before closing the LoopRun.",
+                    "message": (
+                        "Record at least one RunGoal and resolve it before closing "
+                        "the LoopRun."
+                    ),
                 }
             )
         else:
@@ -231,8 +238,8 @@ class HandoffWikiSkill(BaseWikiSkill):
                             "observed": status,
                             "expected": sorted(_TERMINAL_GOAL_STATUSES),
                             "message": (
-                                f"Resolve RunGoal '{goal_id}' as achieved or carried_forward before "
-                                "closing the LoopRun."
+                                f"Resolve RunGoal '{goal_id}' as achieved or "
+                                "carried_forward before closing the LoopRun."
                             ),
                         }
                     )
@@ -243,8 +250,8 @@ class HandoffWikiSkill(BaseWikiSkill):
                             "kind": "handoff",
                             "goal": goal_id,
                             "message": (
-                                f"Create a Handoff from this run that explicitly lists carried-forward "
-                                f"goal '{goal_id}'."
+                                "Create a Handoff from this run that explicitly lists "
+                                f"carried-forward goal '{goal_id}'."
                             ),
                         }
                     )
