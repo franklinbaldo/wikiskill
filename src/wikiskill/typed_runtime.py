@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 
 from okf_parser import load_bundle
 from pydantic import BaseModel
@@ -11,8 +11,6 @@ from pydantic import BaseModel
 from wikiskill.generated.okf_models import ExperienceConcept, LoopRunConcept
 from wikiskill.live_run import LiveRunWikiSkill
 from wikiskill.models import project_frontmatter
-
-ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 class TypedWikiSkill(LiveRunWikiSkill):
@@ -24,7 +22,7 @@ class TypedWikiSkill(LiveRunWikiSkill):
         root = Path(path).resolve()
         return cls(bundle=load_bundle(root), root_path=root)
 
-    def _typed_record(
+    def _typed_record[ModelT: BaseModel](
         self,
         concept_type: str,
         identifier: str,
@@ -77,21 +75,18 @@ class TypedWikiSkill(LiveRunWikiSkill):
             "title": title,
             "timestamp": timestamp,
             "status": status,
-            **(
-                {"skill_used": skill_used}
-                if skill_used is not None
-                else {}
-            ),
-            **(
-                {"skill_version": skill_version}
-                if skill_version is not None
-                else {}
-            ),
-            **({"task": task} if task is not None else {}),
-            **({"error_code": error_code} if error_code is not None else {}),
-            **({"context": context} if context is not None else {}),
-            **({"run": canonical_run} if canonical_run is not None else {}),
         }
+        optional_fields = {
+            "skill_used": skill_used,
+            "skill_version": skill_version,
+            "task": task,
+            "error_code": error_code,
+            "context": context,
+            "run": canonical_run,
+        }
+        experience_frontmatter.update(
+            {key: value for key, value in optional_fields.items() if value is not None}
+        )
         experience = project_frontmatter(ExperienceConcept, experience_frontmatter)
         target = self.root_path / preview["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
