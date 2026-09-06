@@ -78,9 +78,9 @@ class CadenceWikiSkill(PolicyWikiSkill):
 
         reasons: list[str] = []
         blockers: list[str] = []
-        if requested and bool(cadence.get("on_demand")):
+        if requested and self._bool(cadence.get("on_demand")):
             reasons.append("explicit-request")
-        if matching_handoffs and bool(cadence.get("handoff_compatible")):
+        if matching_handoffs and self._bool(cadence.get("handoff_compatible")):
             reasons.append("active-handoff")
 
         interval = self._int(cadence.get("interval_seconds"))
@@ -215,3 +215,15 @@ class CadenceWikiSkill(PolicyWikiSkill):
         if value is None or value == "":
             return None
         return int(value)
+
+    @staticmethod
+    def _bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "yes", "1", "on"}:
+                return True
+            if normalized in {"false", "no", "0", "off", ""}:
+                return False
+        return bool(value)
