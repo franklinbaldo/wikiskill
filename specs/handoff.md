@@ -20,6 +20,12 @@ A `Handoff` represents material work intentionally transferred between agent ses
 - `next_action`: natural resumption point
 - `references`: relevant PRs, issues, files, concepts, evidence or other identifiers
 
+## Goal accountability
+
+- `goals`: RunGoals from `created_by_run` whose unfinished intent this Handoff carries forward.
+
+A LoopRun may close only after every owned RunGoal reaches a terminal state. `achieved` means the run resolved that intent itself. `carried_forward` means responsibility moved to a Handoff, and the corresponding RunGoal must therefore appear in the Handoff's `goals` list. The Handoff continues to satisfy that historical provenance after it is archived by a later run.
+
 ## Optional routing
 
 - `target_session_type`: SessionType that is the natural continuation owner. A compatible cadence policy may treat this active Handoff as an eligibility trigger.
