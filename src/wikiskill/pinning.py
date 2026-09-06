@@ -4,13 +4,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
+
+from okf_parser import load_bundle
 
 from wikiskill.cadence import CadenceWikiSkill
 
 
 class PinnedWikiSkill(CadenceWikiSkill):
     """Cadence runtime whose new LoopRuns retain their governing RunSpec contract."""
+
+    @classmethod
+    def open(cls, path: str | Path = "knowledge") -> PinnedWikiSkill:
+        """Open a bundle while preserving the pinned runtime type."""
+        root = Path(path).resolve()
+        return cls(bundle=load_bundle(root), root_path=root)
 
     def start_run(
         self,
