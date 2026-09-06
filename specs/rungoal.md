@@ -22,3 +22,10 @@ A `RunGoal` states what the run intends to advance and how the agent will recogn
 ## Semantics
 
 Goals should describe product or task progress rather than agent activity. `success_signal` makes the goal testable against evidence accumulated by the run.
+
+A LoopRun cannot close while one of its goals remains `planned`, `active`, or `advanced`. Every run-owned goal must reach one of two terminal states:
+
+- `achieved`: the run itself resolved the intent;
+- `carried_forward`: the intent remains material and is explicitly transferred to a Handoff created by the same run.
+
+A carried-forward goal must be listed in that Handoff's `goals` field. This makes closing a run mean that no intent it assumed was left without a destination.
