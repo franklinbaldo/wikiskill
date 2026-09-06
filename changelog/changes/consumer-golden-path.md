@@ -8,6 +8,7 @@ date: 2026-09-06
 
 - adds non-destructive `wikiskill init` for existing repositories;
 - installs managed normative specs, canonical Experience/Wiki/Skill contracts, and a standard consumer profile;
+- installs a managed `.wikiskill/.gitignore` so reproducible manifest/spec/system state does not pollute consumer diffs while local and learned state remains versionable;
 - adds manifest-backed `wikiskill upgrade` with SHA-256 conflict detection and rollback-safe final writes;
 - makes explicit `session start-next` fall back to on-demand Experience while preserving automatic `session next` semantics;
 - autodiscovers `.wikiskill/knowledge` from the repository root in CLI commands;
