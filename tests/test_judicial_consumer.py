@@ -98,9 +98,7 @@ def test_judicial_consumer_keeps_only_local_specializations(tmp_path: Path) -> N
     assert initialized["preserved_files"] == 3
 
     ws = WikiSkill.open(knowledge)
-    started = ws.start_next_session(
-        "Faça o melhor avanço substantivo possível no Judicial"
-    )
+    started = ws.start_next_session("Faça o melhor avanço substantivo possível no Judicial")
     assert started["session_type"] == "session-types/judicial-experience"
     assert started["run_spec"] == "run-specs/experience"
 
@@ -127,22 +125,16 @@ def test_judicial_consumer_uses_canonical_wiki_then_local_skill(
     assert first_due is not None
     assert first_due["session_type"] == "session-types/standard-wiki"
 
-    wiki_run = WikiSkill.open(knowledge).start_next_session(
-        "Synthesize accumulated evidence"
-    )
+    wiki_run = WikiSkill.open(knowledge).start_next_session("Synthesize accumulated evidence")
     assert wiki_run["session_type"] == "session-types/standard-wiki"
 
     second_due = WikiSkill.open(knowledge).next_session()
     assert second_due is not None
     assert second_due["session_type"] == "session-types/judicial-skill"
 
-    skill_run = WikiSkill.open(knowledge).start_next_session(
-        "Evolve reusable Judicial procedure"
-    )
+    skill_run = WikiSkill.open(knowledge).start_next_session("Evolve reusable Judicial procedure")
     assert skill_run["session_type"] == "session-types/judicial-skill"
     assert skill_run["run_spec"] == "run-specs/judicial-skill"
-    requirements = {
-        item["requirement"] for item in skill_run["check"]["unsatisfied"]
-    }
+    requirements = {item["requirement"] for item in skill_run["check"]["unsatisfied"]}
     assert "check:lineage" in requirements
     assert "check:proportionality" in requirements
