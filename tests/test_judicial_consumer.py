@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from wikiskill import WikiSkill
 from wikiskill.bootstrap import init_repository
+from wikiskill import WikiSkill
 
 
 JUDICIAL_EXPERIENCE = """---
