@@ -58,14 +58,12 @@ class CadenceWikiSkill(PolicyWikiSkill):
         active_runs = sum(
             1
             for run in runs
-            if str(run["frontmatter"].get("status") or "")
-            in {"scaffold", "active", "in_progress"}
+            if str(run["frontmatter"].get("status") or "") in {"scaffold", "active", "in_progress"}
         )
         runs_last_hour = sum(
             1
             for run in runs
-            if (stamp := self._timestamp(run)) is not None
-            and current - stamp <= timedelta(hours=1)
+            if (stamp := self._timestamp(run)) is not None and current - stamp <= timedelta(hours=1)
         )
         lineage = set(str(item) for item in session.get("inheritance", []))
         lineage.add(str(session["id"]))
@@ -88,9 +86,7 @@ class CadenceWikiSkill(PolicyWikiSkill):
             reasons.append("active-handoff")
 
         interval = self._int(cadence.get("interval_seconds"))
-        if interval and (
-            last_run is None or (current - last_run).total_seconds() >= interval
-        ):
+        if interval and (last_run is None or (current - last_run).total_seconds() >= interval):
             reasons.append("interval")
 
         threshold_gte = self._int(cadence.get("threshold_gte"))
@@ -103,17 +99,11 @@ class CadenceWikiSkill(PolicyWikiSkill):
             reasons.append("threshold")
 
         max_delay = self._int(cadence.get("max_delay_seconds"))
-        if max_delay and (
-            last_run is None or (current - last_run).total_seconds() >= max_delay
-        ):
+        if max_delay and (last_run is None or (current - last_run).total_seconds() >= max_delay):
             reasons.append("max-delay")
 
         cooldown = self._int(cadence.get("cooldown_seconds"))
-        if (
-            cooldown
-            and last_run is not None
-            and (current - last_run).total_seconds() < cooldown
-        ):
+        if cooldown and last_run is not None and (current - last_run).total_seconds() < cooldown:
             blockers.append("cooldown")
 
         max_parallel = self._int(cadence.get("max_parallel"))
@@ -135,9 +125,7 @@ class CadenceWikiSkill(PolicyWikiSkill):
                 "runs_last_hour": runs_last_hour,
                 "threshold_value": threshold_value,
                 "targeted_handoffs": len(matching_handoffs),
-                "last_run": last_run.isoformat().replace("+00:00", "Z")
-                if last_run
-                else None,
+                "last_run": last_run.isoformat().replace("+00:00", "Z") if last_run else None,
             },
         }
 
@@ -240,11 +228,7 @@ class CadenceWikiSkill(PolicyWikiSkill):
         raise ValueError(f"Unknown cadence threshold metric: {metric}")
 
     def _latest_timestamp(self, records: list[dict[str, Any]]) -> datetime | None:
-        stamps = [
-            stamp
-            for item in records
-            if (stamp := self._timestamp(item)) is not None
-        ]
+        stamps = [stamp for item in records if (stamp := self._timestamp(item)) is not None]
         return max(stamps) if stamps else None
 
     @staticmethod
