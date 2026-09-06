@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 import cyclopts
 
 from wikiskill import WikiSkill, __version__
+from wikiskill.bootstrap import DEFAULT_PROFILE, init_repository, upgrade_repository
 
 app = cyclopts.App(
     name="wikiskill",
@@ -32,10 +34,34 @@ def _print_json(result: Any) -> None:
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
 
 
+def _resolve_path(path: str | None) -> str:
+    """Resolve explicit path or discover a managed consumer bundle from cwd."""
+    if path:
+        return path
+    managed = Path(".wikiskill") / "knowledge"
+    return str(managed if managed.is_dir() else Path("knowledge"))
+
+
+def _wiki(path: str | None) -> WikiSkill:
+    return WikiSkill.open(_resolve_path(path))
+
+
 @app.command
 def info() -> None:
     """Show wikiskill version and runtime information."""
     print(f"wikiskill runtime v{__version__} (OKF-backed)")
+
+
+@app.command(name="init")
+def init_command(repository: str = ".", *, profile: str = DEFAULT_PROFILE) -> None:
+    """Initialize a repository with the managed WikiSkill consumer bundle."""
+    _print_json(init_repository(repository, profile=profile))
+
+
+@app.command
+def upgrade(repository: str = ".") -> None:
+    """Upgrade WikiSkill-managed consumer files without overwriting local state."""
+    _print_json(upgrade_repository(repository))
 
 
 @app.command
@@ -47,9 +73,14 @@ def serve() -> None:
 
 
 @app.command
-def context(task: str, *, session_type: str | None = None, path: str = "knowledge") -> None:
+def context(
+    task: str,
+    *,
+    session_type: str | None = None,
+    path: str | None = None,
+) -> None:
     """Show contract and learned context for a given agent task."""
-    res = WikiSkill.open(path).context(task, session_type)
+    res = _wiki(path).context(task, session_type)
     print(f"--- Context for: {task} ---")
     print(f"Active handoffs ({len(res['active_handoffs'])}):")
     for handoff in res["active_handoffs"]:
@@ -71,28 +102,28 @@ def start(
     run_spec: str | None = None,
     session_type: str | None = None,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
 ) -> None:
     """Create a live LoopRun scaffold for a task and SessionType."""
-    _print_json(WikiSkill.open(path).start_run(task, run_spec, session_type))
+    _print_json(_wiki(path).start_run(task, run_spec, session_type))
 
 
 @app.command
-def check(run: str, *, path: str = "knowledge") -> None:
+def check(run: str, *, path: str | None = None) -> None:
     """Check a live run and show unsatisfied operational requirements."""
-    _print_json(WikiSkill.open(path).check_run(run))
+    _print_json(_wiki(path).check_run(run))
 
 
 @session_app.command(name="next")
-def session_next(*, path: str = "knowledge") -> None:
+def session_next(*, path: str | None = None) -> None:
     """Show the highest-priority automatically eligible SessionType."""
-    _print_json(WikiSkill.open(path).next_session())
+    _print_json(_wiki(path).next_session())
 
 
 @session_app.command(name="start-next")
-def session_start_next(task: str, *, path: str = "knowledge") -> None:
-    """Select the next eligible SessionType and start its pinned LoopRun."""
-    _print_json(WikiSkill.open(path).start_next_session(task))
+def session_start_next(task: str, *, path: str | None = None) -> None:
+    """Start the best eligible session for an explicit request to do useful work."""
+    _print_json(_wiki(path).start_next_session(task))
 
 
 @run_app.command(name="reading")
@@ -104,11 +135,11 @@ def run_reading(
     reference: str,
     finding: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
 ) -> None:
     """Record one RunReading."""
     _print_json(
-        WikiSkill.open(path).record_run_reading(
+        _wiki(path).record_run_reading(
             run=run,
             component_id=component_id,
             kind=kind,
@@ -129,11 +160,11 @@ def run_goal(
     success_signal: str,
     *,
     status: str = "active",
-    path: str = "knowledge",
+    path: str | None = None,
 ) -> None:
     """Record one RunGoal."""
     _print_json(
-        WikiSkill.open(path).record_run_goal(
+        _wiki(path).record_run_goal(
             run=run,
             component_id=component_id,
             kind=kind,
@@ -153,14 +184,14 @@ def run_decision(
     decision: str,
     rationale: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     goal: str | None = None,
     alternatives: list[str] | None = None,
     evidence: list[str] | None = None,
 ) -> None:
     """Record one RunDecision."""
     _print_json(
-        WikiSkill.open(path).record_run_decision(
+        _wiki(path).record_run_decision(
             run=run,
             component_id=component_id,
             question=question,
@@ -181,14 +212,14 @@ def run_evidence(
     reference: str,
     summary: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     goal: str | None = None,
     decision: str | None = None,
     observed_at: str | None = None,
 ) -> None:
     """Record one RunEvidence."""
     _print_json(
-        WikiSkill.open(path).record_run_evidence(
+        _wiki(path).record_run_evidence(
             run=run,
             component_id=component_id,
             kind=kind,
@@ -210,13 +241,13 @@ def run_check_record(
     result: str,
     status: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     evidence: str | None = None,
     goal: str | None = None,
 ) -> None:
     """Record one RunCheck."""
     _print_json(
-        WikiSkill.open(path).record_run_check(
+        _wiki(path).record_run_check(
             run=run,
             component_id=component_id,
             kind=kind,
@@ -238,7 +269,7 @@ def run_outcome(
     summary: str,
     next_move: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     goals_advanced: list[str] | None = None,
     evidence: list[str] | None = None,
     checks: list[str] | None = None,
@@ -246,7 +277,7 @@ def run_outcome(
 ) -> None:
     """Record the RunOutcome that closes a contract-ready run."""
     _print_json(
-        WikiSkill.open(path).record_run_outcome(
+        _wiki(path).record_run_outcome(
             run=run,
             component_id=component_id,
             result_state=result_state,
@@ -262,9 +293,9 @@ def run_outcome(
 
 
 @handoff_app.command(name="list")
-def handoff_list(task: str | None = None, *, path: str = "knowledge") -> None:
+def handoff_list(task: str | None = None, *, path: str | None = None) -> None:
     """List active handoffs, prioritizing work relevant to a task."""
-    _print_json(WikiSkill.open(path).active_handoffs(task))
+    _print_json(_wiki(path).active_handoffs(task))
 
 
 @handoff_app.command(name="create")
@@ -275,13 +306,13 @@ def handoff_create(
     state: str,
     next_action: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     references: list[str] | None = None,
     target_session_type: str | None = None,
 ) -> None:
     """Persist an active handoff emitted by one LoopRun."""
     _print_json(
-        WikiSkill.open(path).create_handoff(
+        _wiki(path).create_handoff(
             handoff_id=handoff_id,
             title=title,
             created_by_run=created_by_run,
@@ -299,11 +330,11 @@ def handoff_continue(
     continued_by_run: str,
     resolution: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
 ) -> None:
     """Archive a handoff with provenance to the later LoopRun that resumed it."""
     _print_json(
-        WikiSkill.open(path).continue_handoff(
+        _wiki(path).continue_handoff(
             handoff=handoff,
             continued_by_run=continued_by_run,
             resolution=resolution,
@@ -319,7 +350,7 @@ def experience_preview(
     status: str,
     body: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     skill_used: str | None = None,
     skill_version: str | None = None,
     task: str | None = None,
@@ -328,7 +359,7 @@ def experience_preview(
     run: str | None = None,
 ) -> None:
     """Preview an Experience document without changing the bundle."""
-    result = WikiSkill.open(path).preview_experience(
+    result = _wiki(path).preview_experience(
         experience_id=experience_id,
         title=title,
         timestamp=timestamp,
@@ -352,7 +383,7 @@ def experience_record(
     status: str,
     body: str,
     *,
-    path: str = "knowledge",
+    path: str | None = None,
     skill_used: str | None = None,
     skill_version: str | None = None,
     task: str | None = None,
@@ -361,7 +392,7 @@ def experience_record(
     run: str | None = None,
 ) -> None:
     """Persist one validated Experience document into the bundle."""
-    result = WikiSkill.open(path).record_experience(
+    result = _wiki(path).record_experience(
         experience_id=experience_id,
         title=title,
         timestamp=timestamp,

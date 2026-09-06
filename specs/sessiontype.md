@@ -28,3 +28,5 @@ A `SessionType` describes what kind of execution session is being started. It se
 ## Semantics
 
 Inheritance is shallow by design. Scalar child fields override inherited values; `nudges` append in parent-to-child order. Policy links are ordinary inherited scalar configuration and remain independently inspectable. Cycles are invalid.
+
+For scheduler selection, inheritance is also specialization: when a declared SessionType has one or more children, the scheduler considers the leaf specializations rather than making the parent compete with them. The parent remains available for explicit start by id. This lets a consumer extend a managed default SessionType with repository-specific RunSpecs, checks, or nudges without editing the managed parent and without relying on priority or lexical ordering to win selection.

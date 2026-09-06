@@ -30,8 +30,12 @@ class PinnedWikiSkill(CadenceWikiSkill):
         """Start a run and freeze the complete effective RunSpec frontmatter."""
         result = super().start_run(task, run_spec_id, session_type_id)
         run = self._find_record("LoopRun", result["run_id"])
-        spec = self._find_record("RunSpec", str(result["run_spec"]))
-        spec_fm = dict(spec["frontmatter"])
+        effective_spec = self.effective_run_spec(str(result["run_spec"]))
+        spec_fm = {
+            key: value
+            for key, value in effective_spec.items()
+            if key not in {"path", "inheritance"}
+        }
         snapshot = self._canonical_snapshot(spec_fm)
         digest = self._snapshot_digest(snapshot)
 

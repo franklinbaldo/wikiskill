@@ -32,4 +32,8 @@ A `RunSpec` defines the operational protocol for a class of agent executions. A 
 
 A `RunSpec` is not a prompt template. It is a typed contract whose unsatisfied requirements provide operational feedback during a live `LoopRun`.
 
-Consumers may define specialized specs while reusing WikiSkill's generic run component types.
+`parent_spec` is operational inheritance. The four `required_*_kinds` lists are additive and de-duplicated in parent-to-child order, so a consumer can add one domain-specific reading, goal, evidence class, or check without copying the generic contract. Other child fields override inherited scalar or list values when supplied; omitted optional fields remain inherited. Cycles are invalid.
+
+The runtime pins the complete effective RunSpec, not only the child document, into each new LoopRun. Historical runs therefore keep the exact inherited contract they started with even if either parent or child changes later.
+
+Consumers should specialize only what is genuinely domain-specific. A local check such as a repository-specific proportionality review belongs in the consumer RunSpec; generic execution verification, Wiki grounding, and Skill lineage remain reusable upstream requirements.

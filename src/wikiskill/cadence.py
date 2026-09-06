@@ -65,10 +65,12 @@ class CadenceWikiSkill(PolicyWikiSkill):
             for run in runs
             if (stamp := self._timestamp(run)) is not None and current - stamp <= timedelta(hours=1)
         )
+        lineage = set(str(item) for item in session.get("inheritance", []))
+        lineage.add(str(session["id"]))
         matching_handoffs = [
             item
             for item in self.active_handoffs()
-            if item.get("target_session_type") == session["id"]
+            if str(item.get("target_session_type") or "") in lineage
         ]
         threshold_value = self._metric_value(
             str(cadence.get("threshold_metric") or ""),
@@ -78,9 +80,9 @@ class CadenceWikiSkill(PolicyWikiSkill):
 
         reasons: list[str] = []
         blockers: list[str] = []
-        if requested and bool(cadence.get("on_demand")):
+        if requested and self._bool(cadence.get("on_demand")):
             reasons.append("explicit-request")
-        if matching_handoffs and bool(cadence.get("handoff_compatible")):
+        if matching_handoffs and self._bool(cadence.get("handoff_compatible")):
             reasons.append("active-handoff")
 
         interval = self._int(cadence.get("interval_seconds"))
@@ -127,26 +129,69 @@ class CadenceWikiSkill(PolicyWikiSkill):
             },
         }
 
-    def eligible_sessions(self, *, now: datetime | None = None) -> list[dict[str, Any]]:
-        """Return automatically eligible sessions ordered deterministically."""
+    def _scheduler_session_types(self) -> list[dict[str, Any]]:
+        """Return only leaf SessionTypes for automatic/requested selection.
+
+        A child SessionType is a specialization of its parent. Keeping both in the
+        scheduler would make consumers compete with the default they extended. Parent
+        types remain explicitly startable by id; only scheduler selection prefers the
+        most specialized leaves.
+        """
+        records = self._records("SessionType")
+        extended = {
+            str(item["frontmatter"].get("extends") or "")
+            for item in records
+            if item["frontmatter"].get("extends")
+        }
+        leaves: list[dict[str, Any]] = []
+        for item in records:
+            canonical_id = str(item["frontmatter"].get("id") or item["id"])
+            if canonical_id in extended or canonical_id == "session-types/base":
+                continue
+            leaves.append(self.effective_session_type(canonical_id))
+        return leaves
+
+    def eligible_sessions(
+        self,
+        *,
+        now: datetime | None = None,
+        requested: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Return eligible leaf sessions ordered deterministically.
+
+        ``requested`` adds on-demand eligibility without changing automatic threshold,
+        interval, handoff, cooldown, or budget semantics.
+        """
         candidates = [
-            self.session_eligibility(item["id"], now=now)
-            for item in self.session_types()
-            if item["id"] != "session-types/base"
+            self.session_eligibility(item["id"], now=now, requested=requested)
+            for item in self._scheduler_session_types()
         ]
         eligible = [item for item in candidates if item["eligible"]]
-        return sorted(eligible, key=lambda item: (-item["priority"], item["session_type"]))
+        return sorted(
+            eligible,
+            key=lambda item: (-item["priority"], item["session_type"]),
+        )
 
-    def next_session(self, *, now: datetime | None = None) -> dict[str, Any] | None:
-        """Return the highest-priority automatically eligible SessionType."""
-        eligible = self.eligible_sessions(now=now)
+    def next_session(
+        self,
+        *,
+        now: datetime | None = None,
+        requested: bool = False,
+    ) -> dict[str, Any] | None:
+        """Return the highest-priority eligible SessionType."""
+        eligible = self.eligible_sessions(now=now, requested=requested)
         return eligible[0] if eligible else None
 
-    def start_next_session(self, task: str, *, now: datetime | None = None) -> dict[str, Any]:
-        """Select and start the next automatically eligible session."""
-        candidate = self.next_session(now=now)
+    def start_next_session(
+        self,
+        task: str,
+        *,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
+        """Start the best session for an explicit request to do the next useful work."""
+        candidate = self.next_session(now=now, requested=True)
         if candidate is None:
-            raise ValueError("No SessionType is currently eligible for automatic start.")
+            raise ValueError("No SessionType is currently eligible for requested start.")
         return self.start_run(task, session_type_id=candidate["session_type"])
 
     def _session_runs(self, session_type_id: str) -> list[dict[str, Any]]:
@@ -173,11 +218,14 @@ class CadenceWikiSkill(PolicyWikiSkill):
                 and stamp > last_run
             )
         if metric == "active-handoffs":
+            session = self.effective_session_type(session_type_id)
+            lineage = set(str(item) for item in session.get("inheritance", []))
+            lineage.add(str(session["id"]))
             return sum(
                 1
                 for item in self.active_handoffs()
                 if not item.get("target_session_type")
-                or item.get("target_session_type") == session_type_id
+                or str(item.get("target_session_type") or "") in lineage
             )
         raise ValueError(f"Unknown cadence threshold metric: {metric}")
 
@@ -201,3 +249,15 @@ class CadenceWikiSkill(PolicyWikiSkill):
         if value is None or value == "":
             return None
         return int(value)
+
+    @staticmethod
+    def _bool(value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "yes", "1", "on"}:
+                return True
+            if normalized in {"false", "no", "0", "off", ""}:
+                return False
+        return bool(value)

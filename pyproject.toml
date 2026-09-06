@@ -51,6 +51,18 @@ path = "src/wikiskill/__init__.py"
 [tool.hatch.build.targets.wheel]
 packages = ["src/wikiskill"]
 
+# Consumer bootstrap must work from an installed wheel, not only from this Git checkout.
+# These force-includes single-source the normative contracts and canonical learning roles
+# that are also used by WikiSkill's own dogfood bundle.
+[tool.hatch.build.targets.wheel.force-include]
+"specs" = "wikiskill/_assets/specs"
+"knowledge/skills/session-types/experience.md" = "wikiskill/_assets/canonical/session-types/experience.md"
+"knowledge/skills/session-types/wiki.md" = "wikiskill/_assets/canonical/session-types/wiki.md"
+"knowledge/skills/session-types/skill.md" = "wikiskill/_assets/canonical/session-types/skill.md"
+"knowledge/skills/run-specs/experience.md" = "wikiskill/_assets/canonical/run-specs/experience.md"
+"knowledge/skills/run-specs/wiki.md" = "wikiskill/_assets/canonical/run-specs/wiki.md"
+"knowledge/skills/run-specs/skill.md" = "wikiskill/_assets/canonical/run-specs/skill.md"
+
 [tool.ruff]
 target-version = "py312"
 line-length = 100
