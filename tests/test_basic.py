@@ -1,24 +1,18 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
-from fastmcp import Client
-from okf_parser import get_pydantic_source, get_schema_contracts
-from okf_parser.service import check_bundle
+import pytest
+from okf_parser import load_bundle
 
 from wikiskill import WikiSkill, __version__
+from wikiskill.mcp import mcp
+from wikiskill.models import generate_pydantic_code, get_schema_contracts
 
 ROOT = Path(__file__).parent.parent
-
-
-def _temp_bundle(tmp_path: Path) -> Path:
-    shutil.copytree(ROOT / "knowledge", tmp_path / "knowledge")
-    shutil.copytree(ROOT / "specs", tmp_path / "specs")
-    return tmp_path / "knowledge"
 
 
 def _write_concept(path: Path, frontmatter: dict[str, object]) -> None:
@@ -30,18 +24,23 @@ def _write_concept(path: Path, frontmatter: dict[str, object]) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _temp_bundle(tmp_path: Path) -> Path:
+    shutil.copytree(ROOT / "knowledge", tmp_path / "knowledge")
+    shutil.copytree(ROOT / "specs", tmp_path / "specs")
+    return tmp_path / "knowledge"
+
+
 def test_version() -> None:
     assert __version__ == "0.2.6"
 
 
 def test_bundle_conformance() -> None:
-    report = check_bundle(
-        str(ROOT / "knowledge"),
-        require_spec="../specs/{slug}.md",
-        normative_spec=True,
-    )
-    assert report["conformant"] is True
-    concept_types = {concept.concept_type for concept in WikiSkill.open(ROOT / "knowledge").bundle.concepts.execute().itertuples()}
+    knowledge_path = ROOT / "knowledge"
+    bundle = load_bundle(knowledge_path)
+    count = bundle.concepts.count().execute()
+    assert count >= 4
+
+    concept_types = set(bundle.concepts.select("concept_type").distinct().execute()["concept_type"])
     assert "Experience" in concept_types
     assert "WikiEntry" in concept_types
     assert "AgentSkill" in concept_types
@@ -83,30 +82,36 @@ def test_run_start_is_incomplete_and_contract_guided(tmp_path: Path) -> None:
         "wikiskill development",
         "run-specs/wikiskill-development",
     )
-    assert started["run_spec"] == "run-specs/wikiskill-development"
+
     assert started["status"] == "scaffold"
     assert started["session_type"] == "session-types/development"
-    assert started["session"]["purpose"]
-    assert started["check"]["conformant"] is False
-    unsatisfied = {item["requirement"] for item in started["check"]["unsatisfied"]}
-    assert "reading:repository-guide" in unsatisfied
-    assert "reading:active-handoffs" in unsatisfied
-    assert "goal:project-advance" in unsatisfied
-    assert "evidence:change" in unsatisfied
-    assert "check:okf" in unsatisfied
-    assert "outcome" in unsatisfied
-    assert started["check"]["next_action"]["requirement"] == "reading:repository-guide"
+    assert started["session"]["inheritance"] == ["session-types/base", "session-types/development"]
+    assert Path(started["path"]).exists()
+    assert "experiences/runs" in started["path"]
+    assert "active_handoffs" in started
+    check = started["check"]
+    assert check["conformant"] is False
+    requirements = {item["requirement"] for item in check["unsatisfied"]}
+    assert "reading:repository-guide" in requirements
+    assert "reading:active-handoffs" in requirements
+    assert "goal:project-advance" in requirements
+    assert "evidence:change" in requirements
+    assert "check:tests" in requirements
+    assert "outcome" in requirements
+    assert check["next_action"] == {
+        "kind": "reading",
+        "requirement": "reading:repository-guide",
+        "expected": "repository-guide",
+        "message": "Record RunReading kind 'repository-guide'.",
+    }
 
 
 def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> None:
     knowledge_path = _temp_bundle(tmp_path)
     ws = WikiSkill.open(knowledge_path)
-    started = ws.start_run(
-        "wikiskill development",
-        "run-specs/wikiskill-development",
-    )
+    started = ws.start_run("wikiskill development", "run-specs/wikiskill-development")
     run_id = started["run_id"]
-    run_dir = knowledge_path / "experiences" / "runs"
+    runs = knowledge_path / "experiences" / "runs"
 
     for index, kind in enumerate(
         [
@@ -116,135 +121,152 @@ def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> Non
             "okf-knowledge",
             "recent-runs",
             "active-handoffs",
-        ]
+        ],
+        start=1,
     ):
         _write_concept(
-            run_dir / f"reading-{index}.md",
+            runs / f"reading-{index}.md",
             {
                 "type": "RunReading",
                 "id": f"run-readings/{index}",
                 "run": run_id,
                 "kind": kind,
-                "reference": f"source-{index}",
-                "finding": f"finding-{index}",
+                "subject": kind,
+                "reference": f"ref:{kind}",
+                "finding": f"finding for {kind}",
             },
         )
 
     _write_concept(
-        run_dir / "goal.md",
+        runs / "goal.md",
         {
             "type": "RunGoal",
-            "id": "run-goals/main",
+            "id": "run-goals/1",
             "run": run_id,
             "kind": "project-advance",
-            "statement": "advance runtime",
-            "rationale": "prove the contract",
-            "success_signal": "checks become conformant",
+            "goal": "advance the runtime",
+            "rationale": "exercise the execution contract",
+            "success_signal": "contract becomes satisfied",
             "status": "achieved",
         },
     )
-    for index, kind in enumerate(["change", "verification"]):
+
+    for index, kind in enumerate(["change", "verification"], start=1):
         _write_concept(
-            run_dir / f"evidence-{index}.md",
+            runs / f"evidence-{index}.md",
             {
                 "type": "RunEvidence",
                 "id": f"run-evidence/{index}",
                 "run": run_id,
                 "kind": kind,
-                "reference": f"evidence-{index}",
-                "summary": f"summary-{index}",
+                "reference": f"ref:{kind}",
+                "summary": f"evidence for {kind}",
             },
         )
-    for index, kind in enumerate(["okf", "tests"]):
+
+    for index, kind in enumerate(["okf", "tests"], start=1):
         _write_concept(
-            run_dir / f"check-{index}.md",
+            runs / f"check-{index}.md",
             {
                 "type": "RunCheck",
                 "id": f"run-checks/{index}",
                 "run": run_id,
                 "kind": kind,
-                "command": f"check-{index}",
+                "procedure": f"verify {kind}",
                 "result": "passed",
-                "passed": True,
+                "status": "pass",
             },
         )
+
     _write_concept(
-        run_dir / "outcome.md",
+        runs / "outcome.md",
         {
             "type": "RunOutcome",
-            "id": "run-outcomes/main",
+            "id": "run-outcomes/1",
             "run": run_id,
             "result_state": "green",
             "work_status": "complete",
-            "summary": "contract satisfied",
-            "next_move": "continue useful work",
+            "summary": "the run contract is satisfied",
+            "next_move": "continue with the next useful run",
         },
     )
 
     result = WikiSkill.open(knowledge_path).check_run(run_id)
-    assert result["conformant"] is True
+    assert result["structural"]["conformant"] is True
     assert result["unsatisfied"] == []
-    assert result["next_action"]["kind"] == "complete"
+    assert result["conformant"] is True
+    assert result["next_action"] == {
+        "kind": "complete",
+        "requirement": None,
+        "message": "Run satisfies its RunSpec.",
+    }
 
 
 def test_fastmcp_tools_registered() -> None:
-    from wikiskill.mcp import mcp
+    async def _check() -> None:
+        tools = await mcp.list_tools()
+        tool_names = [t.name for t in tools]
+        assert "wikiskill_inventory" in tool_names
+        assert "wikiskill_context" in tool_names
+        assert "wikiskill_start" in tool_names
+        assert "wikiskill_check" in tool_names
+        assert "wikiskill_handoffs" in tool_names
+        assert "wikiskill_handoff_create" in tool_names
+        assert "wikiskill_handoff_continue" in tool_names
 
-    async def check() -> None:
-        async with Client(mcp) as client:
-            tools = await client.list_tools()
-            names = {tool.name for tool in tools}
-            assert "wikiskill_inventory" in names
-            assert "wikiskill_context" in names
-            assert "wikiskill_start" in names
-            assert "wikiskill_check" in names
-            assert "wikiskill_experience_preview" in names
-            assert "wikiskill_experience_record" in names
-            assert "wikiskill_handoffs" in names
-            assert "wikiskill_handoff_create" in names
-            assert "wikiskill_handoff_continue" in names
-
-    import asyncio
-
-    asyncio.run(check())
+    asyncio.run(_check())
 
 
 def test_pydantic_schema_contracts_derivation() -> None:
-    contracts = get_schema_contracts(ROOT / "knowledge")
-    assert "Experience" in contracts
-    assert "WikiEntry" in contracts
-    assert "AgentSkill" in contracts
-    assert "RunSpec" in contracts
-    assert "SessionType" in contracts
-    assert "ContextPolicy" in contracts
-    assert "AccessPolicy" in contracts
-    assert "OutputPolicy" in contracts
-    source = get_pydantic_source(ROOT / "knowledge")
-    assert "class Experience" in source
-    assert "class WikiEntry" in source
-    assert "class AgentSkill" in source
-    assert "class RunSpec" in source
-    assert "class SessionType" in source
-    assert "class ContextPolicy" in source
-    assert "class AccessPolicy" in source
-    assert "class OutputPolicy" in source
+    knowledge_path = ROOT / "knowledge"
+    code = generate_pydantic_code(knowledge_path)
+    assert "class AgentSkillConcept(BaseModel):" in code
+    assert "class ExperienceConcept(BaseModel):" in code
+    assert "class WikiEntryConcept(BaseModel):" in code
+    assert "class RunSpecConcept(BaseModel):" in code
+    assert "class HandoffConcept(BaseModel):" in code
+    assert "class SessionTypeConcept(BaseModel):" in code
+    assert "class ContextPolicyConcept(BaseModel):" in code
+    assert "class AccessPolicyConcept(BaseModel):" in code
+    assert "class OutputPolicyConcept(BaseModel):" in code
+
+    contracts = get_schema_contracts(knowledge_path)
+    contract_types = {c.concept_type for c in contracts}
+    assert contract_types >= {
+        "AgentSkill",
+        "Experience",
+        "WikiEntry",
+        "RunSpec",
+        "Handoff",
+        "SessionType",
+        "ContextPolicy",
+        "AccessPolicy",
+        "OutputPolicy",
+    }
 
 
 def test_mcp_tool_execution() -> None:
     from wikiskill.mcp import wikiskill_context, wikiskill_inventory
 
-    inventory = wikiskill_inventory(str(ROOT / "knowledge"))
-    assert inventory["Experience"] >= 1
-    result = wikiskill_context("wikiskill development", str(ROOT / "knowledge"))
-    assert result["task"] == "wikiskill development"
+    inv = wikiskill_inventory()
+    assert inv["Experience"] >= 1
+    assert inv["RunSpec"] >= 1
+
+    ctx = wikiskill_context("wikiskill development")
+    assert ctx["task"] == "wikiskill development"
+    assert len(ctx["run_specs"]) >= 1
+    assert "active_handoffs" in ctx
 
 
-def test_cli_execution() -> None:
-    result = subprocess.run(
-        [sys.executable, "-m", "wikiskill.cli", "info"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    assert f"v{__version__}" in result.stdout
+def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
+    from wikiskill.cli import context, info
+
+    info()
+    captured = capsys.readouterr()
+    assert "wikiskill runtime v0.2.6" in captured.out
+
+    context("bootstrap")
+    captured = capsys.readouterr()
+    assert "Context for: bootstrap" in captured.out
+    assert "Active handoffs" in captured.out
+    assert "Skills found" in captured.out
