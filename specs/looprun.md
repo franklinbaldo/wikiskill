@@ -23,6 +23,16 @@ The applicable `RunSpec` defines what a well-formed run of this class requires. 
 - `session_type`: Link to the effective `SessionType`
 - `task`: Task or session intent
 
+## Pinned RunSpec provenance
+
+New LoopRuns freeze the complete RunSpec frontmatter that governed the run at creation time:
+
+- `run_spec_version`: authored version of the governing RunSpec;
+- `run_spec_digest`: `sha256:` digest of the canonical snapshot;
+- `run_spec_snapshot`: deterministic JSON serialization of the complete RunSpec frontmatter.
+
+`check_run()` validates a pinned run against this snapshot rather than the mutable current RunSpec. The digest and version make tampering or accidental divergence explicit. Legacy LoopRuns that predate pinning may omit these fields and continue to resolve their current `run_spec` reference as a compatibility fallback.
+
 ## Progressive Frontmatter Fields
 
 These fields are expected to be populated as the run advances according to its `RunSpec`:
