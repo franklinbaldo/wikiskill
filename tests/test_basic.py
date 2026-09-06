@@ -31,7 +31,7 @@ def _temp_bundle(tmp_path: Path) -> Path:
 
 
 def test_version() -> None:
-    assert __version__ == "0.2.11"
+    assert __version__ == "0.2.12"
 
 
 def test_bundle_conformance() -> None:
@@ -269,7 +269,7 @@ def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
 
     info()
     captured = capsys.readouterr()
-    assert "wikiskill runtime v0.2.11" in captured.out
+    assert "wikiskill runtime v0.2.12" in captured.out
 
     context("bootstrap")
     captured = capsys.readouterr()
