@@ -113,9 +113,7 @@ class PinnedWikiSkill(CadenceWikiSkill):
             "outcomes": self._run_components("RunOutcome", run_id),
         }
         unsatisfied = self._pinned_unsatisfied(pinned, components)
-        unsatisfied.extend(
-            item for item in base["unsatisfied"] if item.get("kind") == "handoff"
-        )
+        unsatisfied.extend(item for item in base["unsatisfied"] if item.get("kind") == "handoff")
         structural = base["structural"]
         conformant = bool(structural["conformant"]) and not unsatisfied
 
