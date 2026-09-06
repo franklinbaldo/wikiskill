@@ -33,8 +33,8 @@ def wikiskill_inventory() -> dict[str, int]:
     ),
     annotations={"readOnlyHint": True},
 )
-def wikiskill_context(task: str) -> dict[str, Any]:
-    return _get_runtime().context(task)
+def wikiskill_context(task: str, session_type: str | None = None) -> dict[str, Any]:
+    return _get_runtime().context(task, session_type)
 
 
 @mcp.tool(
@@ -63,6 +63,28 @@ def wikiskill_check(run: str) -> dict[str, Any]:
 
 
 @mcp.tool(
+    name="wikiskill_session_eligibility",
+    description="Explain why a SessionType is or is not currently eligible to run.",
+    annotations={"readOnlyHint": True},
+)
+def wikiskill_session_eligibility(
+    session_type: str,
+    requested: bool = False,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).session_eligibility(session_type, requested=requested)
+
+
+@mcp.tool(
+    name="wikiskill_next_session",
+    description="Return the highest-priority automatically eligible SessionType.",
+    annotations={"readOnlyHint": True},
+)
+def wikiskill_next_session(path: str = "knowledge") -> dict[str, Any] | None:
+    return _get_runtime(path).next_session()
+
+
+@mcp.tool(
     name="wikiskill_handoffs",
     description="List active cross-session handoffs, ranking task-relevant work first.",
     annotations={"readOnlyHint": True},
@@ -88,6 +110,7 @@ def wikiskill_handoff_create(
     state: str,
     next_action: str,
     references: list[str] | None = None,
+    target_session_type: str | None = None,
     path: str = "knowledge",
 ) -> dict[str, Any]:
     return _get_runtime(path).create_handoff(
@@ -97,6 +120,7 @@ def wikiskill_handoff_create(
         state=state,
         next_action=next_action,
         references=references,
+        target_session_type=target_session_type,
     )
 
 

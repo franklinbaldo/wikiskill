@@ -6,7 +6,7 @@ description: "Defines the purpose and inherited operating contract for one class
 
 # Concept: SessionType
 
-A `SessionType` describes what kind of execution session is being started. It selects a `RunSpec`, contributes prompt nudges, and composes context, access, and output policies without conflating those concerns.
+A `SessionType` describes what kind of execution session is being started. It selects a `RunSpec`, contributes prompt nudges, and composes context, access, output, and cadence policies without conflating those concerns.
 
 ## Required Frontmatter Fields
 
@@ -23,6 +23,7 @@ A `SessionType` describes what kind of execution session is being started. It se
 - `context_policy`: Link to a `ContextPolicy`
 - `access_policy`: Link to an `AccessPolicy`
 - `output_policy`: Link to an `OutputPolicy`
+- `cadence_policy`: Link to a `CadencePolicy`
 
 ## Semantics
 

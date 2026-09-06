@@ -29,6 +29,7 @@ _OUTPUT_FIELDS = {
     "ContextPolicy": "context_policy_path",
     "AccessPolicy": "access_policy_path",
     "OutputPolicy": "output_policy_path",
+    "CadencePolicy": "cadence_policy_path",
 }
 _DEFAULT_OUTPUTS = {
     "Experience": "experiences/records",
@@ -49,6 +50,7 @@ _DEFAULT_OUTPUTS = {
     "ContextPolicy": "skills/policies/context",
     "AccessPolicy": "skills/policies/access",
     "OutputPolicy": "skills/policies/output",
+    "CadencePolicy": "skills/policies/cadence",
 }
 
 

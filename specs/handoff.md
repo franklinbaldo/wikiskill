@@ -20,6 +20,10 @@ A `Handoff` represents material work intentionally transferred between agent ses
 - `next_action`: natural resumption point
 - `references`: relevant PRs, issues, files, concepts, evidence or other identifiers
 
+## Optional routing
+
+- `target_session_type`: SessionType that is the natural continuation owner. A compatible cadence policy may treat this active Handoff as an eligibility trigger.
+
 ## Archived handoffs
 
 When a later session continues the work, the handoff is archived and records:

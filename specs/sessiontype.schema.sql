@@ -7,5 +7,6 @@ CREATE TABLE "SessionType" (
     "nudges" VARCHAR[],
     "context_policy" VARCHAR,
     "access_policy" VARCHAR,
-    "output_policy" VARCHAR
+    "output_policy" VARCHAR,
+    "cadence_policy" VARCHAR
 );

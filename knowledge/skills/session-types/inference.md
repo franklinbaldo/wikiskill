@@ -7,6 +7,7 @@ run_spec: run-specs/inference
 extends: session-types/base
 context_policy: context-policies/inference
 access_policy: access-policies/development
+cadence_policy: cadence-policies/inference
 nudges:
   - "Use active skills as operating procedure and focus on the task in front of the session."
   - "Record reusable execution evidence as Experience rather than silently carrying it to the next session."

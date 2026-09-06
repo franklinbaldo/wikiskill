@@ -14,6 +14,7 @@ run_spec_path: skills/run-specs
 context_policy_path: skills/policies/context
 access_policy_path: skills/policies/access
 output_policy_path: skills/policies/output
+cadence_policy_path: skills/policies/cadence
 ---
 
 # Default output policy

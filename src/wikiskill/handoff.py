@@ -53,6 +53,7 @@ class HandoffWikiSkill(BaseWikiSkill):
                     "title": record["title"],
                     "path": record["path"],
                     "created_by_run": str(fm.get("created_by_run") or ""),
+                    "target_session_type": str(fm.get("target_session_type") or ""),
                     "state": str(fm.get("state") or ""),
                     "next_action": str(fm.get("next_action") or ""),
                     "references": references,
@@ -70,6 +71,7 @@ class HandoffWikiSkill(BaseWikiSkill):
         state: str,
         next_action: str,
         references: list[str] | None = None,
+        target_session_type: str | None = None,
     ) -> dict[str, Any]:
         """Persist active unfinished work emitted by one LoopRun."""
         self._find_record("LoopRun", created_by_run)
@@ -87,7 +89,7 @@ class HandoffWikiSkill(BaseWikiSkill):
             raise FileExistsError(path)
 
         now = datetime.now(UTC).isoformat().replace("+00:00", "Z")
-        frontmatter = {
+        frontmatter: dict[str, Any] = {
             "type": "Handoff",
             "id": canonical_id,
             "title": title,
@@ -98,6 +100,8 @@ class HandoffWikiSkill(BaseWikiSkill):
             "next_action": next_action,
             "references": references or [],
         }
+        if target_session_type:
+            frontmatter["target_session_type"] = target_session_type
         path.write_text(self._render_markdown(frontmatter, "# Handoff\n"), encoding="utf-8")
         try:
             self._require_conformant_bundle()

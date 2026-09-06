@@ -12,5 +12,6 @@ CREATE TABLE "OutputPolicy" (
     "run_spec_path" VARCHAR,
     "context_policy_path" VARCHAR,
     "access_policy_path" VARCHAR,
-    "output_policy_path" VARCHAR
+    "output_policy_path" VARCHAR,
+    "cadence_policy_path" VARCHAR
 );
