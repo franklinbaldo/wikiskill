@@ -10,6 +10,12 @@ from fastmcp import FastMCP
 from wikiskill import WikiSkill
 
 mcp = FastMCP(name="wikiskill")
+_WRITE_ANNOTATIONS = {
+    "readOnlyHint": False,
+    "destructiveHint": False,
+    "idempotentHint": False,
+    "openWorldHint": False,
+}
 
 
 def _get_runtime(path: str | Path = "knowledge") -> WikiSkill:
@@ -21,8 +27,8 @@ def _get_runtime(path: str | Path = "knowledge") -> WikiSkill:
     description="Get concept counts grouped by concept type in the WikiSkill OKF bundle.",
     annotations={"readOnlyHint": True},
 )
-def wikiskill_inventory() -> dict[str, int]:
-    return _get_runtime().inventory()
+def wikiskill_inventory(path: str = "knowledge") -> dict[str, int]:
+    return _get_runtime(path).inventory()
 
 
 @mcp.tool(
@@ -33,8 +39,12 @@ def wikiskill_inventory() -> dict[str, int]:
     ),
     annotations={"readOnlyHint": True},
 )
-def wikiskill_context(task: str, session_type: str | None = None) -> dict[str, Any]:
-    return _get_runtime().context(task, session_type)
+def wikiskill_context(
+    task: str,
+    session_type: str | None = None,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).context(task, session_type)
 
 
 @mcp.tool(
@@ -42,13 +52,15 @@ def wikiskill_context(task: str, session_type: str | None = None) -> dict[str, A
     description=(
         "Create an incomplete LoopRun scaffold using an optional SessionType and governing RunSpec."
     ),
+    annotations=_WRITE_ANNOTATIONS,
 )
 def wikiskill_start(
     task: str,
     run_spec: str | None = None,
     session_type: str | None = None,
+    path: str = "knowledge",
 ) -> dict[str, Any]:
-    return _get_runtime().start_run(task, run_spec, session_type)
+    return _get_runtime(path).start_run(task, run_spec, session_type)
 
 
 @mcp.tool(
@@ -58,8 +70,8 @@ def wikiskill_start(
     ),
     annotations={"readOnlyHint": True},
 )
-def wikiskill_check(run: str) -> dict[str, Any]:
-    return _get_runtime().check_run(run)
+def wikiskill_check(run: str, path: str = "knowledge") -> dict[str, Any]:
+    return _get_runtime(path).check_run(run)
 
 
 @mcp.tool(
@@ -85,6 +97,184 @@ def wikiskill_next_session(path: str = "knowledge") -> dict[str, Any] | None:
 
 
 @mcp.tool(
+    name="wikiskill_start_next_session",
+    description="Select the highest-priority eligible SessionType and start its pinned LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_start_next_session(
+    task: str,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).start_next_session(task)
+
+
+@mcp.tool(
+    name="wikiskill_run_reading",
+    description="Record a typed RunReading and attach it to an existing live LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_reading(
+    run: str,
+    component_id: str,
+    kind: str,
+    subject: str,
+    reference: str,
+    finding: str,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).record_run_reading(
+        run=run,
+        component_id=component_id,
+        kind=kind,
+        subject=subject,
+        reference=reference,
+        finding=finding,
+    )
+
+
+@mcp.tool(
+    name="wikiskill_run_goal",
+    description="Record a typed RunGoal and attach it to an existing live LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_goal(
+    run: str,
+    component_id: str,
+    kind: str,
+    goal: str,
+    rationale: str,
+    success_signal: str,
+    status: str = "active",
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).record_run_goal(
+        run=run,
+        component_id=component_id,
+        kind=kind,
+        goal=goal,
+        rationale=rationale,
+        success_signal=success_signal,
+        status=status,
+    )
+
+
+@mcp.tool(
+    name="wikiskill_run_decision",
+    description="Record a typed RunDecision and attach it to an existing live LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_decision(
+    run: str,
+    component_id: str,
+    question: str,
+    decision: str,
+    rationale: str,
+    goal: str | None = None,
+    alternatives: list[str] | None = None,
+    evidence: list[str] | None = None,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).record_run_decision(
+        run=run,
+        component_id=component_id,
+        question=question,
+        decision=decision,
+        rationale=rationale,
+        goal=goal,
+        alternatives=alternatives,
+        evidence=evidence,
+    )
+
+
+@mcp.tool(
+    name="wikiskill_run_evidence",
+    description="Record typed RunEvidence and attach it to an existing live LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_evidence(
+    run: str,
+    component_id: str,
+    kind: str,
+    reference: str,
+    summary: str,
+    goal: str | None = None,
+    decision: str | None = None,
+    observed_at: str | None = None,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).record_run_evidence(
+        run=run,
+        component_id=component_id,
+        kind=kind,
+        reference=reference,
+        summary=summary,
+        goal=goal,
+        decision=decision,
+        observed_at=observed_at,
+    )
+
+
+@mcp.tool(
+    name="wikiskill_run_check_record",
+    description="Record a typed RunCheck verification and attach it to a live LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_check_record(
+    run: str,
+    component_id: str,
+    kind: str,
+    procedure: str,
+    result: str,
+    status: str,
+    evidence: str | None = None,
+    goal: str | None = None,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).record_run_check(
+        run=run,
+        component_id=component_id,
+        kind=kind,
+        procedure=procedure,
+        result=result,
+        status=status,
+        evidence=evidence,
+        goal=goal,
+    )
+
+
+@mcp.tool(
+    name="wikiskill_run_outcome",
+    description="Record the RunOutcome that closes a contract-ready LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_outcome(
+    run: str,
+    component_id: str,
+    result_state: str,
+    work_status: str,
+    summary: str,
+    next_move: str,
+    goals_advanced: list[str] | None = None,
+    evidence: list[str] | None = None,
+    checks: list[str] | None = None,
+    experiences_recorded: list[str] | None = None,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).record_run_outcome(
+        run=run,
+        component_id=component_id,
+        result_state=result_state,
+        work_status=work_status,
+        summary=summary,
+        next_move=next_move,
+        goals_advanced=goals_advanced,
+        evidence=evidence,
+        checks=checks,
+        experiences_recorded=experiences_recorded,
+    )
+
+
+@mcp.tool(
     name="wikiskill_handoffs",
     description="List active cross-session handoffs, ranking task-relevant work first.",
     annotations={"readOnlyHint": True},
@@ -96,12 +286,7 @@ def wikiskill_handoffs(task: str | None = None, path: str = "knowledge") -> list
 @mcp.tool(
     name="wikiskill_handoff_create",
     description="Create a validated active Handoff for material work left by a LoopRun.",
-    annotations={
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": False,
-    },
+    annotations=_WRITE_ANNOTATIONS,
 )
 def wikiskill_handoff_create(
     handoff_id: str,
@@ -127,12 +312,7 @@ def wikiskill_handoff_create(
 @mcp.tool(
     name="wikiskill_handoff_continue",
     description=("Archive an active Handoff and record the later LoopRun that resumed the work."),
-    annotations={
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": False,
-    },
+    annotations=_WRITE_ANNOTATIONS,
 )
 def wikiskill_handoff_continue(
     handoff: str,
@@ -189,12 +369,7 @@ def wikiskill_experience_preview(
 @mcp.tool(
     name="wikiskill_experience_record",
     description="Write one validated OKF Experience document to the WikiSkill bundle.",
-    annotations={
-        "readOnlyHint": False,
-        "destructiveHint": False,
-        "idempotentHint": False,
-        "openWorldHint": False,
-    },
+    annotations=_WRITE_ANNOTATIONS,
 )
 def wikiskill_experience_record(
     experience_id: str,
