@@ -76,9 +76,7 @@ def test_active_goal_blocks_outcome_until_achieved(tmp_path: Path) -> None:
         status="achieved",
     )
     assert updated["status"] == "achieved"
-    assert not any(
-        item["kind"] == "goal-state" for item in updated["check"]["unsatisfied"]
-    )
+    assert not any(item["kind"] == "goal-state" for item in updated["check"]["unsatisfied"])
 
     outcome = WikiSkill.open(knowledge_path).record_run_outcome(
         run=run_id,
@@ -171,7 +169,7 @@ def test_handoff_rejects_goal_from_another_run(tmp_path: Path) -> None:
     )
     _, second_run = _closure_run(knowledge_path, "second run")
 
-    with pytest.raises(ValueError, match="does not belong"):
+    with pytest.raises(ValueError, match="another run"):
         WikiSkill.open(knowledge_path).create_handoff(
             handoff_id="wrong-run",
             title="Wrong run",
