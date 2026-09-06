@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 import cyclopts
 
@@ -19,6 +20,16 @@ experience_app = app.command(
 handoff_app = app.command(
     cyclopts.App(name="handoff", help="Create, list, and continue cross-session Handoffs.")
 )
+session_app = app.command(
+    cyclopts.App(name="session", help="Inspect scheduling and start eligible SessionTypes.")
+)
+run_app = app.command(
+    cyclopts.App(name="run", help="Record typed state while progressing a live LoopRun.")
+)
+
+
+def _print_json(result: Any) -> None:
+    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
 
 
 @app.command
@@ -36,10 +47,9 @@ def serve() -> None:
 
 
 @app.command
-def context(task: str) -> None:
+def context(task: str, *, session_type: str | None = None, path: str = "knowledge") -> None:
     """Show contract and learned context for a given agent task."""
-    ws = WikiSkill.open("knowledge")
-    res = ws.context(task)
+    res = WikiSkill.open(path).context(task, session_type)
     print(f"--- Context for: {task} ---")
     print(f"Active handoffs ({len(res['active_handoffs'])}):")
     for handoff in res["active_handoffs"]:
@@ -60,24 +70,201 @@ def start(
     task: str,
     run_spec: str | None = None,
     session_type: str | None = None,
+    *,
+    path: str = "knowledge",
 ) -> None:
     """Create a live LoopRun scaffold for a task and SessionType."""
-    result = WikiSkill.open("knowledge").start_run(task, run_spec, session_type)
-    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    _print_json(WikiSkill.open(path).start_run(task, run_spec, session_type))
 
 
 @app.command
-def check(run: str) -> None:
+def check(run: str, *, path: str = "knowledge") -> None:
     """Check a live run and show unsatisfied operational requirements."""
-    result = WikiSkill.open("knowledge").check_run(run)
-    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    _print_json(WikiSkill.open(path).check_run(run))
+
+
+@session_app.command(name="next")
+def session_next(*, path: str = "knowledge") -> None:
+    """Show the highest-priority automatically eligible SessionType."""
+    _print_json(WikiSkill.open(path).next_session())
+
+
+@session_app.command(name="start-next")
+def session_start_next(task: str, *, path: str = "knowledge") -> None:
+    """Select the next eligible SessionType and start its pinned LoopRun."""
+    _print_json(WikiSkill.open(path).start_next_session(task))
+
+
+@run_app.command(name="reading")
+def run_reading(
+    run: str,
+    component_id: str,
+    kind: str,
+    subject: str,
+    reference: str,
+    finding: str,
+    *,
+    path: str = "knowledge",
+) -> None:
+    """Record one RunReading."""
+    _print_json(
+        WikiSkill.open(path).record_run_reading(
+            run=run,
+            component_id=component_id,
+            kind=kind,
+            subject=subject,
+            reference=reference,
+            finding=finding,
+        )
+    )
+
+
+@run_app.command(name="goal")
+def run_goal(
+    run: str,
+    component_id: str,
+    kind: str,
+    goal: str,
+    rationale: str,
+    success_signal: str,
+    *,
+    status: str = "active",
+    path: str = "knowledge",
+) -> None:
+    """Record one RunGoal."""
+    _print_json(
+        WikiSkill.open(path).record_run_goal(
+            run=run,
+            component_id=component_id,
+            kind=kind,
+            goal=goal,
+            rationale=rationale,
+            success_signal=success_signal,
+            status=status,
+        )
+    )
+
+
+@run_app.command(name="decision")
+def run_decision(
+    run: str,
+    component_id: str,
+    question: str,
+    decision: str,
+    rationale: str,
+    *,
+    path: str = "knowledge",
+    goal: str | None = None,
+    alternatives: list[str] | None = None,
+    evidence: list[str] | None = None,
+) -> None:
+    """Record one RunDecision."""
+    _print_json(
+        WikiSkill.open(path).record_run_decision(
+            run=run,
+            component_id=component_id,
+            question=question,
+            decision=decision,
+            rationale=rationale,
+            goal=goal,
+            alternatives=alternatives,
+            evidence=evidence,
+        )
+    )
+
+
+@run_app.command(name="evidence")
+def run_evidence(
+    run: str,
+    component_id: str,
+    kind: str,
+    reference: str,
+    summary: str,
+    *,
+    path: str = "knowledge",
+    goal: str | None = None,
+    decision: str | None = None,
+    observed_at: str | None = None,
+) -> None:
+    """Record one RunEvidence."""
+    _print_json(
+        WikiSkill.open(path).record_run_evidence(
+            run=run,
+            component_id=component_id,
+            kind=kind,
+            reference=reference,
+            summary=summary,
+            goal=goal,
+            decision=decision,
+            observed_at=observed_at,
+        )
+    )
+
+
+@run_app.command(name="check")
+def run_check_record(
+    run: str,
+    component_id: str,
+    kind: str,
+    procedure: str,
+    result: str,
+    status: str,
+    *,
+    path: str = "knowledge",
+    evidence: str | None = None,
+    goal: str | None = None,
+) -> None:
+    """Record one RunCheck."""
+    _print_json(
+        WikiSkill.open(path).record_run_check(
+            run=run,
+            component_id=component_id,
+            kind=kind,
+            procedure=procedure,
+            result=result,
+            status=status,
+            evidence=evidence,
+            goal=goal,
+        )
+    )
+
+
+@run_app.command(name="outcome")
+def run_outcome(
+    run: str,
+    component_id: str,
+    result_state: str,
+    work_status: str,
+    summary: str,
+    next_move: str,
+    *,
+    path: str = "knowledge",
+    goals_advanced: list[str] | None = None,
+    evidence: list[str] | None = None,
+    checks: list[str] | None = None,
+    experiences_recorded: list[str] | None = None,
+) -> None:
+    """Record the RunOutcome that closes a contract-ready run."""
+    _print_json(
+        WikiSkill.open(path).record_run_outcome(
+            run=run,
+            component_id=component_id,
+            result_state=result_state,
+            work_status=work_status,
+            summary=summary,
+            next_move=next_move,
+            goals_advanced=goals_advanced,
+            evidence=evidence,
+            checks=checks,
+            experiences_recorded=experiences_recorded,
+        )
+    )
 
 
 @handoff_app.command(name="list")
 def handoff_list(task: str | None = None, *, path: str = "knowledge") -> None:
     """List active handoffs, prioritizing work relevant to a task."""
-    result = WikiSkill.open(path).active_handoffs(task)
-    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
+    _print_json(WikiSkill.open(path).active_handoffs(task))
 
 
 @handoff_app.command(name="create")
@@ -90,17 +277,20 @@ def handoff_create(
     *,
     path: str = "knowledge",
     references: list[str] | None = None,
+    target_session_type: str | None = None,
 ) -> None:
     """Persist an active handoff emitted by one LoopRun."""
-    result = WikiSkill.open(path).create_handoff(
-        handoff_id=handoff_id,
-        title=title,
-        created_by_run=created_by_run,
-        state=state,
-        next_action=next_action,
-        references=references,
+    _print_json(
+        WikiSkill.open(path).create_handoff(
+            handoff_id=handoff_id,
+            title=title,
+            created_by_run=created_by_run,
+            state=state,
+            next_action=next_action,
+            references=references,
+            target_session_type=target_session_type,
+        )
     )
-    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
 
 
 @handoff_app.command(name="continue")
@@ -112,12 +302,13 @@ def handoff_continue(
     path: str = "knowledge",
 ) -> None:
     """Archive a handoff with provenance to the later LoopRun that resumed it."""
-    result = WikiSkill.open(path).continue_handoff(
-        handoff=handoff,
-        continued_by_run=continued_by_run,
-        resolution=resolution,
+    _print_json(
+        WikiSkill.open(path).continue_handoff(
+            handoff=handoff,
+            continued_by_run=continued_by_run,
+            resolution=resolution,
+        )
     )
-    print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
 
 
 @experience_app.command(name="preview")
