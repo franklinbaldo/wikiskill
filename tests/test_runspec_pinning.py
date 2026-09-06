@@ -50,7 +50,7 @@ required_goal_kinds: []
 required_evidence_kinds: []
 required_check_kinds:
   - proportionality
-completion_notes: \"Add the Judicial proportionality check without copying the canonical Skill contract.\"
+completion_notes: \"Add Judicial proportionality without copying the parent contract.\"
 ---
 
 # Judicial skill evolution
