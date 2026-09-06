@@ -77,6 +77,9 @@ class SessionWikiSkill(HandoffWikiSkill):
         path = self.root_path / run["path"]
         previous = path.read_text(encoding="utf-8")
         frontmatter = dict(run["frontmatter"])
+        spec = self._find_record("RunSpec", str(result["run_spec"]))
+        canonical_spec_id = str(spec["frontmatter"].get("id") or spec["id"])
+        frontmatter["run_spec"] = canonical_spec_id
         frontmatter["session_type"] = session["id"]
         body = self._body_from_document(previous)
         path.write_text(self._render_markdown(frontmatter, body), encoding="utf-8")
@@ -87,6 +90,7 @@ class SessionWikiSkill(HandoffWikiSkill):
             self._reload()
             raise
         self._reload()
+        result["run_spec"] = canonical_spec_id
         result["session_type"] = session["id"]
         result["session"] = {
             "id": session["id"],
