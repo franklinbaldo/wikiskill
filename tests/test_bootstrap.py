@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+import wikiskill.bootstrap as bootstrap
 from wikiskill import WikiSkill
 from wikiskill.bootstrap import init_repository, upgrade_repository
 
@@ -96,3 +99,29 @@ def test_upgrade_detects_edited_managed_file_before_writing(tmp_path: Path) -> N
     assert "knowledge/system/canonical/session-types/experience.md" in result["conflicts"]
     assert managed.read_text(encoding="utf-8").endswith("local edit\n")
     assert (root / "manifest.json").read_text(encoding="utf-8") == before_manifest
+
+
+def test_upgrade_rolls_back_live_state_when_final_write_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    init_repository(tmp_path)
+    root = tmp_path / ".wikiskill"
+    managed = root / "knowledge/system/canonical/session-types/experience.md"
+    before_managed = managed.read_bytes()
+    before_manifest = (root / "manifest.json").read_bytes()
+    real_write_manifest = bootstrap._write_manifest
+
+    def fail_only_on_live_root(path: Path, manifest: dict[str, object]) -> None:
+        if path == root:
+            managed.write_text("partial write", encoding="utf-8")
+            raise OSError("simulated final write failure")
+        real_write_manifest(path, manifest)
+
+    monkeypatch.setattr(bootstrap, "_write_manifest", fail_only_on_live_root)
+
+    with pytest.raises(OSError, match="simulated final write failure"):
+        upgrade_repository(tmp_path)
+
+    assert managed.read_bytes() == before_managed
+    assert (root / "manifest.json").read_bytes() == before_manifest
