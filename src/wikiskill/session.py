@@ -77,11 +77,7 @@ class SessionWikiSkill(HandoffWikiSkill):
             for field in _RUNSPEC_REQUIREMENT_FIELDS
         }
         effective.update(
-            {
-                key: value
-                for key, value in fm.items()
-                if key not in _RUNSPEC_REQUIREMENT_FIELDS
-            }
+            {key: value for key, value in fm.items() if key not in _RUNSPEC_REQUIREMENT_FIELDS}
         )
         for field in _RUNSPEC_REQUIREMENT_FIELDS:
             merged = [*inherited_requirements[field]]
