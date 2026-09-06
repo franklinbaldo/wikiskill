@@ -63,8 +63,7 @@ class CadenceWikiSkill(PolicyWikiSkill):
         runs_last_hour = sum(
             1
             for run in runs
-            if (stamp := self._timestamp(run)) is not None
-            and current - stamp <= timedelta(hours=1)
+            if (stamp := self._timestamp(run)) is not None and current - stamp <= timedelta(hours=1)
         )
         matching_handoffs = [
             item
