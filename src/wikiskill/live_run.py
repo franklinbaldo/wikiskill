@@ -235,6 +235,16 @@ class LiveRunWikiSkill(PinnedWikiSkill):
     ) -> dict[str, Any]:
         """Close one run round with its coherent state and natural continuation."""
         self._require_enum("work_status", work_status, _WORK_STATUSES)
+        if work_status == "partial":
+            run_record = self._find_record("LoopRun", run)
+            run_id = str(run_record["frontmatter"].get("id") or run_record["id"])
+            handoffs = [
+                item
+                for item in self._records("Handoff")
+                if str(item["frontmatter"].get("created_by_run") or "") == run_id
+            ]
+            if not handoffs:
+                raise ValueError("Partial RunOutcome requires a Handoff before the LoopRun can close.")
         return self._record_run_component(
             "RunOutcome",
             run,
