@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Check generated OKF Pydantic models
+        run: uv run python scripts/generate_okf_models.py --check
+
       - name: Lint (Ruff check)
         run: uv run ruff check .
 
@@ -69,6 +72,9 @@ jobs:
 
       - name: Test Lowest Direct Dependencies
         run: uv sync --resolution lowest-direct
+
+      - name: Check generated OKF Pydantic models
+        run: uv run python scripts/generate_okf_models.py --check
 
       - name: Run Pytest against Lowest Bounds
         run: uv run pytest -v
