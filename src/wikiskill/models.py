@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, cast
 
 from okf_parser.schema_contract import model_name
 from okf_parser.schema_export import TypeContract, build_schema_contracts, export_pydantic_source
@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 SPEC_TEMPLATE = "../specs/{slug}.md"
-ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
 def generate_pydantic_code(knowledge_path: Path) -> str:
@@ -43,7 +42,10 @@ def generated_model_for(concept_type: str) -> type[BaseModel]:
     return cast("type[BaseModel]", candidate)
 
 
-def project_frontmatter(model: type[ModelT], frontmatter: Mapping[str, object]) -> ModelT:
+def project_frontmatter[ModelT: BaseModel](
+    model: type[ModelT],
+    frontmatter: Mapping[str, object],
+) -> ModelT:
     """Project already-OKF-validated metadata into a statically visible Pydantic model.
 
     OKF remains the authority for document conformance. Generated Pydantic models are
@@ -60,7 +62,9 @@ def project_frontmatter(model: type[ModelT], frontmatter: Mapping[str, object]) 
             continue
         annotation = field.annotation
         raw = frontmatter[authored_name]
-        values[python_name] = raw if annotation is None else TypeAdapter(annotation).validate_python(raw)
+        values[python_name] = (
+            raw if annotation is None else TypeAdapter(annotation).validate_python(raw)
+        )
 
     values.update(
         (name, value) for name, value in frontmatter.items() if name not in authored_names
