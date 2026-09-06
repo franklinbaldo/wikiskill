@@ -223,14 +223,23 @@ class LiveRunWikiSkill(PinnedWikiSkill):
         if str(run_fm.get("status") or "") == "closed":
             raise ValueError(f"LoopRun is already closed: {run_id}")
 
+        prefix = _COMPONENT_PREFIXES[concept_type]
+        field = _COMPONENT_FIELDS[concept_type]
+        label = _COMPONENT_LABELS[concept_type]
+        if field == "outcome":
+            current = self.check_run(run_id)
+            prerequisites = [
+                item for item in current["unsatisfied"] if item.get("requirement") != "outcome"
+            ]
+            if prerequisites:
+                pending = ", ".join(str(item.get("requirement")) for item in prerequisites)
+                raise ValueError(f"LoopRun has unmet prerequisites before outcome: {pending}")
+
         slug = self._slug(component_id.rsplit("/", 1)[-1])
         if not slug:
             raise ValueError("component_id must contain a usable identifier")
         self._require_non_empty(fields)
 
-        prefix = _COMPONENT_PREFIXES[concept_type]
-        field = _COMPONENT_FIELDS[concept_type]
-        label = _COMPONENT_LABELS[concept_type]
         run_slug = self._slug(run_id.rsplit("/", 1)[-1])
         canonical_id = f"{prefix}/{run_slug}/{slug}"
         run_path = self.root_path / run["path"]
