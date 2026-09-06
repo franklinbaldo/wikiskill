@@ -86,9 +86,9 @@ def test_partial_run_requires_handoff_and_future_run_archives_it(tmp_path: Path)
     }
     assert WikiSkill.open(knowledge_path).active_handoffs() == []
 
-    handoff_doc = (
-        knowledge_path / "experiences" / "handoffs" / "handoff-runtime.md"
-    ).read_text(encoding="utf-8")
+    handoff_doc = (knowledge_path / "experiences" / "handoffs" / "handoff-runtime.md").read_text(
+        encoding="utf-8"
+    )
     assert 'status: "archived"' in handoff_doc
     assert f'continued_by_run: "{continuing_run}"' in handoff_doc
     assert "archived_at:" in handoff_doc
