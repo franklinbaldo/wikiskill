@@ -50,7 +50,7 @@ def test_init_creates_conformant_managed_consumer_bundle(tmp_path: Path) -> None
 
     assert result["status"] == "initialized"
     assert result["conformant"] is True
-    assert result["preserved_local_files"] == 0
+    assert result["preserved_files"] == 0
     root = tmp_path / ".wikiskill"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["format_version"] == 1
@@ -79,11 +79,33 @@ def test_init_preserves_predeclared_local_specialization(tmp_path: Path) -> None
     result = init_repository(tmp_path)
 
     assert result["status"] == "initialized"
-    assert result["preserved_local_files"] == 1
+    assert result["preserved_files"] == 1
     assert local.read_bytes() == before
     ws = WikiSkill.open(knowledge)
     started = ws.start_next_session("Do the next useful repository work")
     assert started["session_type"] == "session-types/judicial-experience"
+
+
+def test_init_preserves_versioned_runtime_knowledge(tmp_path: Path) -> None:
+    knowledge = tmp_path / ".wikiskill/knowledge"
+    local = _write_local_experience(knowledge)
+    preserved = [local]
+    for relative in (
+        "experiences/shared.txt",
+        "wiki/shared.txt",
+        "skills/shared.txt",
+    ):
+        path = knowledge / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f"keep {relative}", encoding="utf-8")
+        preserved.append(path)
+    before = {path: path.read_bytes() for path in preserved}
+
+    result = init_repository(tmp_path)
+
+    assert result["status"] == "initialized"
+    assert result["preserved_files"] == 4
+    assert {path: path.read_bytes() for path in preserved} == before
 
 
 def test_consumer_specialization_replaces_default_for_scheduler(tmp_path: Path) -> None:
