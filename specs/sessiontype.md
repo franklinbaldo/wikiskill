@@ -6,7 +6,7 @@ description: "Defines the purpose and inherited operating contract for one class
 
 # Concept: SessionType
 
-A `SessionType` describes what kind of execution session is being started. It is intentionally separate from `RunSpec`: the session type selects an execution contract and may also contribute prompt nudges and later policy links.
+A `SessionType` describes what kind of execution session is being started. It selects a `RunSpec`, contributes prompt nudges, and composes context, access, and output policies without conflating those concerns.
 
 ## Required Frontmatter Fields
 
@@ -20,7 +20,10 @@ A `SessionType` describes what kind of execution session is being started. It is
 
 - `extends`: Parent `SessionType`; child configuration refines the parent
 - `nudges`: Short instructions inherited and appended through the hierarchy
+- `context_policy`: Link to a `ContextPolicy`
+- `access_policy`: Link to an `AccessPolicy`
+- `output_policy`: Link to an `OutputPolicy`
 
 ## Semantics
 
-Inheritance is shallow by design. Scalar child fields override inherited values; `nudges` append in parent-to-child order. Cycles are invalid.
+Inheritance is shallow by design. Scalar child fields override inherited values; `nudges` append in parent-to-child order. Policy links are ordinary inherited scalar configuration and remain independently inspectable. Cycles are invalid.

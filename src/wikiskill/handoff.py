@@ -35,10 +35,11 @@ class HandoffWikiSkill(BaseWikiSkill):
             fm = record["frontmatter"]
             if str(fm.get("status") or "") != _HANDOFF_STATUS_ACTIVE:
                 continue
+            canonical_id = str(fm.get("id") or record["id"])
             references = [str(item) for item in fm.get("references", [])]
             corpus = " ".join(
                 [
-                    record["id"],
+                    canonical_id,
                     record["title"],
                     str(fm.get("state") or ""),
                     str(fm.get("next_action") or ""),
@@ -48,7 +49,7 @@ class HandoffWikiSkill(BaseWikiSkill):
             relevant = any(word in corpus for word in keywords) if keywords else True
             handoffs.append(
                 {
-                    "id": record["id"],
+                    "id": canonical_id,
                     "title": record["title"],
                     "path": record["path"],
                     "created_by_run": str(fm.get("created_by_run") or ""),
@@ -118,8 +119,9 @@ class HandoffWikiSkill(BaseWikiSkill):
         self._find_record("LoopRun", continued_by_run)
         record = self._find_record("Handoff", handoff)
         frontmatter = dict(record["frontmatter"])
+        canonical_id = str(frontmatter.get("id") or record["id"])
         if str(frontmatter.get("status") or "") != _HANDOFF_STATUS_ACTIVE:
-            raise ValueError(f"Handoff is already archived: {record['id']}")
+            raise ValueError(f"Handoff is already archived: {canonical_id}")
         created_by_run = str(frontmatter.get("created_by_run") or "")
         if continued_by_run == created_by_run:
             raise ValueError("continued_by_run must identify a later LoopRun")
@@ -146,7 +148,7 @@ class HandoffWikiSkill(BaseWikiSkill):
             raise
         self._reload()
         return {
-            "id": record["id"],
+            "id": canonical_id,
             "status": _HANDOFF_STATUS_ARCHIVED,
             "continued_by_run": continued_by_run,
         }
