@@ -31,6 +31,8 @@ def test_new_run_pins_complete_runspec_snapshot(tmp_path: Path) -> None:
     assert str(frontmatter["run_spec_digest"]).startswith("sha256:")
     assert snapshot["id"] == "run-specs/wikiskill-development"
     assert snapshot["required_goal_kinds"] == ["project-advance"]
+    assert "path" not in snapshot
+    assert "inheritance" not in snapshot
     assert started["check"]["run_spec_pinned"] is True
 
 
@@ -81,6 +83,8 @@ Consumer specialization of the canonical Skill RunSpec.
     snapshot = json.loads(str(run["frontmatter"]["run_spec_snapshot"]))
     assert snapshot["id"] == "run-specs/judicial-skill"
     assert snapshot["required_check_kinds"] == ["lineage", "proportionality"]
+    assert "path" not in snapshot
+    assert "inheritance" not in snapshot
     requirements = {item["requirement"] for item in started["check"]["unsatisfied"]}
     assert "check:lineage" in requirements
     assert "check:proportionality" in requirements
