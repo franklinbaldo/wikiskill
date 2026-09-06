@@ -23,6 +23,7 @@ _CANONICAL_SOURCES = {
     "knowledge/system/canonical/run-specs/skill.md": "run-specs/skill.md",
 }
 _LOCAL_PREFIX = Path("knowledge/local")
+_MANAGED_GITIGNORE = b"/.gitignore\n/manifest.json\n/specs/\n/knowledge/system/\n"
 
 
 def _package_root() -> Path:
@@ -65,7 +66,7 @@ def _sha256(content: bytes) -> str:
 
 
 def _managed_assets(profile: str) -> dict[str, bytes]:
-    assets: dict[str, bytes] = {}
+    assets: dict[str, bytes] = {".gitignore": _MANAGED_GITIGNORE}
     for source in sorted(_spec_source_root().iterdir()):
         if source.is_file():
             assets[f"specs/{source.name}"] = source.read_bytes()
