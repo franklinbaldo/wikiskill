@@ -69,6 +69,52 @@ def test_targeted_handoff_activates_compatible_session(tmp_path: Path) -> None:
     assert result["metrics"]["targeted_handoffs"] == 1
 
 
+def test_parent_targeted_handoff_activates_leaf_specialization(tmp_path: Path) -> None:
+    knowledge = _copy_bundle(tmp_path)
+    child = knowledge / "skills/session-types/judicial-evaluator.md"
+    child.write_text(
+        """---
+type: SessionType
+id: session-types/judicial-evaluator
+title: Judicial evaluator
+purpose: \"Evaluate under Judicial-specific guidance.\"
+run_spec: run-specs/evaluation
+extends: session-types/evaluator
+nudges:
+  - \"Apply the Judicial specialization.\"
+---
+
+# Judicial evaluator
+
+Consumer-owned specialization of the evaluator role.
+""",
+        encoding="utf-8",
+    )
+
+    ws = WikiSkill.open(knowledge)
+    source = ws.start_run("source", session_type_id="session-types/development")
+    ws.create_handoff(
+        handoff_id="evaluate-specialized-next",
+        title="Evaluate candidate in consumer",
+        created_by_run=source["run_id"],
+        target_session_type="session-types/evaluator",
+        state="Candidate is ready for evaluation.",
+        next_action="Run the specialized evaluator contract.",
+    )
+
+    reopened = WikiSkill.open(knowledge)
+    eligible = reopened.eligible_sessions(now=datetime.now(UTC))
+    ids = [item["session_type"] for item in eligible]
+    assert "session-types/judicial-evaluator" in ids
+    assert "session-types/evaluator" not in ids
+    result = reopened.session_eligibility(
+        "session-types/judicial-evaluator",
+        now=datetime.now(UTC),
+    )
+    assert "active-handoff" in result["reasons"]
+    assert result["metrics"]["targeted_handoffs"] == 1
+
+
 def test_next_session_is_deterministic_by_priority() -> None:
     ws = WikiSkill.open(ROOT / "knowledge")
     eligible = ws.eligible_sessions(now=NOW)
