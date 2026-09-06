@@ -86,6 +86,21 @@ class PolicyWikiSkill(SessionWikiSkill):
         session = self._select_session_type(session_type_id)
         return {"session_type": session["id"], **session.get("policies", {})}
 
+    def _context_records(self, concept_type: str) -> list[dict[str, Any]]:
+        """Expose authored concept identity independently from storage layout."""
+        records: list[dict[str, Any]] = []
+        for record in self._records(concept_type):
+            frontmatter = record["frontmatter"]
+            records.append(
+                {
+                    "id": str(frontmatter.get("id") or record["id"]),
+                    "type": concept_type,
+                    "title": record["title"],
+                    "path": record["path"],
+                }
+            )
+        return records
+
     def context(self, task: str, session_type_id: str | None = None) -> dict[str, Any]:
         """Return context plus explicit policy guidance for the selected session."""
         result = super().context(task)
@@ -99,19 +114,29 @@ class PolicyWikiSkill(SessionWikiSkill):
         result["context_policy"] = context_policy
         result["access_policy"] = access_policy
 
-        if context_policy and str(context_policy.get("mode") or "advisory") == "curated":
+        surfaces = {
+            "skills": ("skills", "AgentSkill"),
+            "wiki": ("wiki", "WikiEntry"),
+            "experiences": ("recent_experiences", "Experience"),
+            "handoffs": ("active_handoffs", "Handoff"),
+            "run-specs": ("run_specs", "RunSpec"),
+        }
+        if context_policy:
             include = {str(item) for item in context_policy.get("include", [])}
             exclude = {str(item) for item in context_policy.get("exclude", [])}
-            surfaces = {
-                "skills": "skills",
-                "wiki": "wiki",
-                "experiences": "recent_experiences",
-                "handoffs": "active_handoffs",
-                "run-specs": "run_specs",
-            }
-            for category, key in surfaces.items():
-                if category in exclude or (include and category not in include):
-                    result[key] = []
+            mode = str(context_policy.get("mode") or "advisory")
+
+            # Advisory policy does not restrict host access, but its declared surfaces
+            # should still yield useful injected context when lexical matching is empty.
+            for category in include:
+                key, concept_type = surfaces.get(category, ("", ""))
+                if key and concept_type and category != "handoffs" and not result.get(key):
+                    result[key] = self._context_records(concept_type)
+
+            if mode == "curated":
+                for category, (key, _) in surfaces.items():
+                    if category in exclude or (include and category not in include):
+                        result[key] = []
         return result
 
     def output_path(self, concept_type: str, session_type_id: str | None = None) -> str:
