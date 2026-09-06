@@ -110,6 +110,24 @@ def _write_assets(root: Path, assets: dict[str, bytes]) -> None:
         path.write_bytes(content)
 
 
+def _snapshot_files(root: Path, relative_paths: set[str]) -> dict[str, bytes | None]:
+    return {
+        relative: (path.read_bytes() if path.is_file() else None)
+        for relative in relative_paths
+        for path in [root / relative]
+    }
+
+
+def _restore_files(root: Path, snapshot: dict[str, bytes | None]) -> None:
+    for relative, content in snapshot.items():
+        path = root / relative
+        if content is None:
+            path.unlink(missing_ok=True)
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+
+
 def _validate_installation(root: Path) -> dict[str, object]:
     return check_bundle(
         str(root / "knowledge"),
@@ -239,8 +257,15 @@ def upgrade_repository(repository: str | Path = ".") -> dict[str, Any]:
                 "message": "Candidate managed upgrade is not conformant; live state was untouched.",
             }
 
-    _apply_upgrade(target, old_managed, assets)
-    _write_manifest(target, new_manifest)
+    touched = set(old_managed) | set(assets) | {"manifest.json"}
+    snapshot = _snapshot_files(target, touched)
+    try:
+        _apply_upgrade(target, old_managed, assets)
+        _write_manifest(target, new_manifest)
+    except Exception:
+        _restore_files(target, snapshot)
+        raise
+
     return {
         "status": "upgraded",
         "root": str(target),
