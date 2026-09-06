@@ -22,7 +22,6 @@ def _get_runtime(path: str | Path = "knowledge") -> WikiSkill:
     annotations={"readOnlyHint": True},
 )
 def wikiskill_inventory() -> dict[str, int]:
-    """Return counts of concepts grouped by concept_type."""
     return _get_runtime().inventory()
 
 
@@ -35,20 +34,21 @@ def wikiskill_inventory() -> dict[str, int]:
     annotations={"readOnlyHint": True},
 )
 def wikiskill_context(task: str) -> dict[str, Any]:
-    """Retrieve execution and learned context for an agent task."""
     return _get_runtime().context(task)
 
 
 @mcp.tool(
     name="wikiskill_start",
     description=(
-        "Create an intentionally incomplete LoopRun scaffold governed by a RunSpec and surface "
-        "active handoffs that the new session can resume."
+        "Create an incomplete LoopRun scaffold using an optional SessionType and governing RunSpec."
     ),
 )
-def wikiskill_start(task: str, run_spec: str | None = None) -> dict[str, Any]:
-    """Create a live contract-guided run."""
-    return _get_runtime().start_run(task, run_spec)
+def wikiskill_start(
+    task: str,
+    run_spec: str | None = None,
+    session_type: str | None = None,
+) -> dict[str, Any]:
+    return _get_runtime().start_run(task, run_spec, session_type)
 
 
 @mcp.tool(
@@ -59,7 +59,6 @@ def wikiskill_start(task: str, run_spec: str | None = None) -> dict[str, Any]:
     annotations={"readOnlyHint": True},
 )
 def wikiskill_check(run: str) -> dict[str, Any]:
-    """Check the current structural and semantic state of a live run."""
     return _get_runtime().check_run(run)
 
 
@@ -69,7 +68,6 @@ def wikiskill_check(run: str) -> dict[str, Any]:
     annotations={"readOnlyHint": True},
 )
 def wikiskill_handoffs(task: str | None = None, path: str = "knowledge") -> list[dict[str, Any]]:
-    """List resumable unfinished work."""
     return _get_runtime(path).active_handoffs(task)
 
 
@@ -92,7 +90,6 @@ def wikiskill_handoff_create(
     references: list[str] | None = None,
     path: str = "knowledge",
 ) -> dict[str, Any]:
-    """Persist one cross-session Handoff."""
     return _get_runtime(path).create_handoff(
         handoff_id=handoff_id,
         title=title,
@@ -119,7 +116,6 @@ def wikiskill_handoff_continue(
     resolution: str,
     path: str = "knowledge",
 ) -> dict[str, Any]:
-    """Consume a Handoff with provenance to the continuing run."""
     return _get_runtime(path).continue_handoff(
         handoff=handoff,
         continued_by_run=continued_by_run,
@@ -151,7 +147,6 @@ def wikiskill_experience_preview(
     context: str | None = None,
     run: str | None = None,
 ) -> dict[str, str]:
-    """Preview one Experience using the canonical runtime rendering path."""
     return _get_runtime(path).preview_experience(
         experience_id=experience_id,
         title=title,
@@ -191,7 +186,6 @@ def wikiskill_experience_record(
     context: str | None = None,
     run: str | None = None,
 ) -> dict[str, str | bool]:
-    """Persist one Experience through the canonical WikiSkill runtime."""
     return _get_runtime(path).record_experience(
         experience_id=experience_id,
         title=title,

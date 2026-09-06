@@ -4,6 +4,7 @@ CREATE TABLE "LoopRun" (
     "timestamp" VARCHAR,
     "status" VARCHAR,
     "run_spec" VARCHAR,
+    "session_type" VARCHAR,
     "task" VARCHAR,
     "readings" VARCHAR[],
     "goals" VARCHAR[],

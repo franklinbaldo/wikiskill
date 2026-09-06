@@ -10,7 +10,7 @@ A `LoopRun` is the live state of one agent execution round.
 
 It exists before substantive work begins, starts intentionally incomplete, and accumulates typed readings, goals, decisions, evidence, checks and an outcome as the session progresses.
 
-The applicable `RunSpec` defines what a well-formed run of this class requires. Repeated `okf-parser` validation provides operational feedback about missing or inconsistent state.
+The applicable `RunSpec` defines what a well-formed run of this class requires. The `SessionType` records what kind of session created the run and supplies its purpose, inherited nudges, and default RunSpec selection. Repeated `okf-parser` validation provides operational feedback about missing or inconsistent state.
 
 ## Required Frontmatter Fields
 
@@ -20,6 +20,7 @@ The applicable `RunSpec` defines what a well-formed run of this class requires. 
 - `timestamp`: ISO-8601 start timestamp
 - `status`: `"scaffold"`, `"in_progress"`, or `"closed"`
 - `run_spec`: Link to the governing `RunSpec`
+- `session_type`: Link to the effective `SessionType`
 - `task`: Task or session intent
 
 ## Progressive Frontmatter Fields

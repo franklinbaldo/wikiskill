@@ -1,0 +1,15 @@
+---
+type: SessionType
+id: session-types/development
+title: WikiSkill development session
+purpose: "Advance the repository through implementation, verification, and durable learning."
+run_spec: run-specs/wikiskill-development
+extends: session-types/base
+nudges:
+  - "Prefer a concrete repository advance over commentary about possible work."
+  - "Use the repository's issues, PRs, checks, handoffs, and OKF state as first-class execution context."
+---
+
+# Development session
+
+Default SessionType for development work in this repository.
