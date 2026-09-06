@@ -49,6 +49,12 @@ jobs:
       - name: Validate OKF Bundle (Normative Specs Gate)
         run: uv run okf-parser check knowledge/ --require-spec "../specs/{slug}.md" --normative-spec
 
+      - name: Build consumer-installable wheel
+        run: uv build --wheel
+
+      - name: Validate wheel bootstrap assets
+        run: uv run scripts/check_wheel_assets.py
+
       - name: Run Pytest
         run: uv run pytest -v
 
