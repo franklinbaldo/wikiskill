@@ -169,9 +169,7 @@ def init_repository(
         "profile": profile,
         "managed_files": len(assets),
         "conformant": True,
-        "next": (
-            'wikiskill session start-next "Faça o melhor avanço possível neste repositório"'
-        ),
+        "next": ('wikiskill session start-next "Faça o melhor avanço possível neste repositório"'),
     }
 
 
