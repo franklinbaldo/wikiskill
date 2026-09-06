@@ -8,8 +8,11 @@ date: 2026-09-06
 
 - adds non-destructive `wikiskill init` for existing repositories;
 - installs managed normative specs, canonical Experience/Wiki/Skill contracts, and a standard consumer profile;
-- adds manifest-backed `wikiskill upgrade` with SHA-256 conflict detection and no partial write on validation failure;
+- adds manifest-backed `wikiskill upgrade` with SHA-256 conflict detection and rollback-safe final writes;
 - makes explicit `session start-next` fall back to on-demand Experience while preserving automatic `session next` semantics;
 - autodiscovers `.wikiskill/knowledge` from the repository root in CLI commands;
 - packages normative and canonical bootstrap assets in the wheel;
+- makes scheduler selection prefer leaf SessionType specializations so consumer children replace managed defaults without priority tricks;
+- makes `RunSpec.parent_spec` operational: required readings, goals, evidence, and checks append into the effective pinned contract;
+- lets Handoffs targeting a parent SessionType activate compatible leaf specializations;
 - documents the canonical cross-session Experience → Wiki → Skill evaluation lifecycle and consumer/core responsibility boundary.
