@@ -127,26 +127,40 @@ class CadenceWikiSkill(PolicyWikiSkill):
             },
         }
 
-    def eligible_sessions(self, *, now: datetime | None = None) -> list[dict[str, Any]]:
-        """Return automatically eligible sessions ordered deterministically."""
+    def eligible_sessions(
+        self,
+        *,
+        now: datetime | None = None,
+        requested: bool = False,
+    ) -> list[dict[str, Any]]:
+        """Return eligible sessions ordered deterministically.
+
+        ``requested`` adds on-demand eligibility without changing automatic threshold,
+        interval, handoff, cooldown, or budget semantics.
+        """
         candidates = [
-            self.session_eligibility(item["id"], now=now)
+            self.session_eligibility(item["id"], now=now, requested=requested)
             for item in self.session_types()
             if item["id"] != "session-types/base"
         ]
         eligible = [item for item in candidates if item["eligible"]]
         return sorted(eligible, key=lambda item: (-item["priority"], item["session_type"]))
 
-    def next_session(self, *, now: datetime | None = None) -> dict[str, Any] | None:
-        """Return the highest-priority automatically eligible SessionType."""
-        eligible = self.eligible_sessions(now=now)
+    def next_session(
+        self,
+        *,
+        now: datetime | None = None,
+        requested: bool = False,
+    ) -> dict[str, Any] | None:
+        """Return the highest-priority eligible SessionType."""
+        eligible = self.eligible_sessions(now=now, requested=requested)
         return eligible[0] if eligible else None
 
     def start_next_session(self, task: str, *, now: datetime | None = None) -> dict[str, Any]:
-        """Select and start the next automatically eligible session."""
-        candidate = self.next_session(now=now)
+        """Start the best session for an explicit request to do the next useful work."""
+        candidate = self.next_session(now=now, requested=True)
         if candidate is None:
-            raise ValueError("No SessionType is currently eligible for automatic start.")
+            raise ValueError("No SessionType is currently eligible for requested start.")
         return self.start_run(task, session_type_id=candidate["session_type"])
 
     def _session_runs(self, session_type_id: str) -> list[dict[str, Any]]:
