@@ -55,7 +55,11 @@ def test_init_creates_conformant_managed_consumer_bundle(tmp_path: Path) -> None
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["format_version"] == 1
     assert manifest["profile"] == "standard"
+    assert ".gitignore" in manifest["managed_files"]
     assert "specs/sessiontype.md" in manifest["managed_files"]
+    assert (root / ".gitignore").read_text(encoding="utf-8") == (
+        "/.gitignore\n/manifest.json\n/specs/\n/knowledge/system/\n"
+    )
     assert (
         root / "knowledge/system/profiles/standard/session-types/standard-experience.md"
     ).is_file()
