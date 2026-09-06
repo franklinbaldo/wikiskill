@@ -58,6 +58,14 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+# okf-parser#251: the generated annotation is useful to consumers, while its
+# omissible-but-non-null Pydantic default currently triggers only this assignment diagnostic.
+[[tool.ty.overrides]]
+include = ["src/wikiskill/generated/okf_models.py"]
+
+[tool.ty.overrides.rules]
+invalid-assignment = "ignore"
+
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]
 skips = ["B101"]
