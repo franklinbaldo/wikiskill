@@ -95,7 +95,7 @@ def test_judicial_consumer_keeps_only_local_specializations(tmp_path: Path) -> N
 
     assert initialized["status"] == "initialized"
     assert initialized["conformant"] is True
-    assert initialized["preserved_local_files"] == 3
+    assert initialized["preserved_files"] == 3
 
     ws = WikiSkill.open(knowledge)
     started = ws.start_next_session(
