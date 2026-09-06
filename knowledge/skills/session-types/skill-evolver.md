@@ -2,9 +2,9 @@
 type: SessionType
 id: session-types/skill-evolver
 title: Skill evolver / proposer
-purpose: "Turn accumulated WikiEntry knowledge and supporting experiences into evidence-backed skill proposals."
+purpose: "Turn accumulated WikiEntry knowledge and supporting experiences into evidence-backed skill proposals and later lifecycle decisions."
 run_spec: run-specs/skill-evolution
-extends: session-types/base
+extends: session-types/skill
 context_policy: context-policies/skill-evolver
 access_policy: access-policies/development
 cadence_policy: cadence-policies/skill-evolver
@@ -16,4 +16,4 @@ nudges:
 
 # Skill evolver session
 
-Proposal-oriented session aligned with the paper's skill proposer role.
+Backward-compatible proposer-oriented specialization of the canonical Skill role. A later Skill session may also refine, promote, or reject candidates after Wiki synthesis accumulates.

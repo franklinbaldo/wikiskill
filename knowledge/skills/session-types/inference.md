@@ -4,7 +4,7 @@ id: session-types/inference
 title: Inference / work execution
 purpose: "Execute real work using active skills and produce episodic evidence of what happened."
 run_spec: run-specs/inference
-extends: session-types/base
+extends: session-types/experience
 context_policy: context-policies/inference
 access_policy: access-policies/development
 cadence_policy: cadence-policies/inference
@@ -15,4 +15,4 @@ nudges:
 
 # Inference session
 
-Execution-oriented session aligned with the paper's inference role.
+Backward-compatible paper-oriented name for an Experience session. New consumers should normally extend `session-types/experience` directly.

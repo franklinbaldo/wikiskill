@@ -4,7 +4,7 @@ id: session-types/wiki-maintainer
 title: Wiki maintainer
 purpose: "Consolidate episodic execution evidence into durable WikiEntry knowledge."
 run_spec: run-specs/wiki-maintenance
-extends: session-types/base
+extends: session-types/wiki
 context_policy: context-policies/wiki-maintainer
 access_policy: access-policies/development
 cadence_policy: cadence-policies/wiki-maintainer
@@ -17,4 +17,4 @@ nudges:
 
 # Wiki maintainer session
 
-Consolidates Experience into persistent knowledge while preserving provenance and avoiding duplicate entries.
+Backward-compatible maintenance-oriented specialization of the canonical Wiki role. It consolidates Experience into persistent knowledge while preserving provenance and avoiding duplicate entries.
