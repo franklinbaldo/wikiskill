@@ -61,6 +61,8 @@ Physical output paths used by existing runtime concepts may coexist with this st
 
 Consumers are not expected to understand or maintain every managed file physically present under `.wikiskill/`. The useful measure of adoption complexity is the consumer-owned surface, not the generated file count.
 
+Bootstrap also installs a managed `.wikiskill/.gitignore`. It ignores only reproducible managed state: the local `.gitignore` itself, `manifest.json`, `specs/`, and `knowledge/system/`. Consumer configuration in `knowledge/local/` and runtime-produced Experience, Wiki, and Skill state remain visible to Git. A clean consumer therefore does not acquire a large untracked diff merely by running `init`.
+
 ## Standard profile
 
 The standard profile makes the canonical cycle useful without requiring a scheduler-specific prompt.
@@ -107,12 +109,12 @@ It:
 
 1. refuses to overwrite an existing managed installation;
 2. creates the minimum `.wikiskill/` structure;
-3. installs normative specs and system profile files shipped with the installed WikiSkill version;
+3. installs normative specs, system profile files, and the managed Git ignore rules shipped with the installed WikiSkill version;
 4. records SHA-256 hashes and format/runtime version in `manifest.json`;
 5. validates the resulting bundle;
 6. reports the canonical next command.
 
-An existing unrelated `.wikiskill/` directory is not silently adopted. Migration of legacy/manual installations is a distinct operation because guessing ownership is unsafe.
+An existing unrelated `.wikiskill/` directory is not silently adopted. Migration of legacy/manual installations is a distinct operation because guessing ownership is unsafe. A predeclared `knowledge/local/` tree is the narrow exception: it is explicitly consumer-owned, so `init` may preserve it while installing the managed surface around it.
 
 ## Upgrade
 
@@ -185,4 +187,4 @@ The manifest has its own `format_version`, independent of the package semantic v
 
 A new repository can adopt WikiSkill through `init`, immediately run `session start-next`, and receive the canonical learning behavior. A real consumer such as Judicial should then be able to delete most of its hand-built WikiSkill bootstrap and retain only domain specialization.
 
-If a consumer must understand WikiSkill's package topology or manually synchronize core specs to remain correct, this RFC has not been satisfied.
+If a consumer must understand WikiSkill's package topology, manually synchronize core specs, or accept generated managed files as repository noise to remain correct, this RFC has not been satisfied.
