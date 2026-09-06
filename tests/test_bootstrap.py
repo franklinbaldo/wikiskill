@@ -21,32 +21,9 @@ def _record_experiences(ws: WikiSkill, count: int) -> None:
         )
 
 
-def test_init_creates_conformant_managed_consumer_bundle(tmp_path: Path) -> None:
-    result = init_repository(tmp_path)
-
-    assert result["status"] == "initialized"
-    assert result["conformant"] is True
-    root = tmp_path / ".wikiskill"
-    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-    assert manifest["format_version"] == 1
-    assert manifest["profile"] == "standard"
-    assert "specs/sessiontype.md" in manifest["managed_files"]
-    assert (
-        root / "knowledge/system/profiles/standard/session-types/standard-experience.md"
-    ).is_file()
-
-    ws = WikiSkill.open(root / "knowledge")
-    assert ws.next_session() is None
-    started = ws.start_next_session("Do the next useful repository work")
-    assert started["session_type"] == "session-types/standard-experience"
-    assert started["run_spec"] == "run-specs/experience"
-
-
-def test_consumer_specialization_replaces_default_for_scheduler(tmp_path: Path) -> None:
-    init_repository(tmp_path)
-    knowledge = tmp_path / ".wikiskill/knowledge"
+def _write_local_experience(knowledge: Path) -> Path:
     local = knowledge / "local/session-types/judicial-experience.md"
-    local.parent.mkdir(parents=True)
+    local.parent.mkdir(parents=True, exist_ok=True)
     local.write_text(
         """---
 type: SessionType
@@ -65,6 +42,50 @@ Consumer-owned specialization of the managed standard Experience role.
 """,
         encoding="utf-8",
     )
+    return local
+
+
+def test_init_creates_conformant_managed_consumer_bundle(tmp_path: Path) -> None:
+    result = init_repository(tmp_path)
+
+    assert result["status"] == "initialized"
+    assert result["conformant"] is True
+    assert result["preserved_local_files"] == 0
+    root = tmp_path / ".wikiskill"
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["format_version"] == 1
+    assert manifest["profile"] == "standard"
+    assert "specs/sessiontype.md" in manifest["managed_files"]
+    assert (
+        root / "knowledge/system/profiles/standard/session-types/standard-experience.md"
+    ).is_file()
+
+    ws = WikiSkill.open(root / "knowledge")
+    assert ws.next_session() is None
+    started = ws.start_next_session("Do the next useful repository work")
+    assert started["session_type"] == "session-types/standard-experience"
+    assert started["run_spec"] == "run-specs/experience"
+
+
+def test_init_preserves_predeclared_local_specialization(tmp_path: Path) -> None:
+    knowledge = tmp_path / ".wikiskill/knowledge"
+    local = _write_local_experience(knowledge)
+    before = local.read_bytes()
+
+    result = init_repository(tmp_path)
+
+    assert result["status"] == "initialized"
+    assert result["preserved_local_files"] == 1
+    assert local.read_bytes() == before
+    ws = WikiSkill.open(knowledge)
+    started = ws.start_next_session("Do the next useful repository work")
+    assert started["session_type"] == "session-types/judicial-experience"
+
+
+def test_consumer_specialization_replaces_default_for_scheduler(tmp_path: Path) -> None:
+    init_repository(tmp_path)
+    knowledge = tmp_path / ".wikiskill/knowledge"
+    _write_local_experience(knowledge)
 
     ws = WikiSkill.open(knowledge)
     requested = ws.eligible_sessions(requested=True)
@@ -107,6 +128,7 @@ def test_init_refuses_unmanaged_existing_state_without_touching_it(tmp_path: Pat
     result = init_repository(tmp_path)
 
     assert result["status"] == "unmanaged-existing-state"
+    assert result["files"] == ["legacy.txt"]
     assert marker.read_text(encoding="utf-8") == "keep me"
     assert not (root / "manifest.json").exists()
 
