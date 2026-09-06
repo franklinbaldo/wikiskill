@@ -143,11 +143,13 @@ class CadenceWikiSkill(PolicyWikiSkill):
             for item in records
             if item["frontmatter"].get("extends")
         }
-        return [
-            self.effective_session_type(item["id"])
-            for item in records
-            if item["id"] not in extended and item["id"] != "session-types/base"
-        ]
+        leaves: list[dict[str, Any]] = []
+        for item in records:
+            canonical_id = str(item["frontmatter"].get("id") or item["id"])
+            if canonical_id in extended or canonical_id == "session-types/base":
+                continue
+            leaves.append(self.effective_session_type(canonical_id))
+        return leaves
 
     def eligible_sessions(
         self,
