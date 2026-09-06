@@ -14,10 +14,13 @@ def _copy_bundle(tmp_path: Path) -> Path:
     return tmp_path / "knowledge"
 
 
-def test_builtin_session_types_are_declared() -> None:
+def test_builtin_session_types_declare_canonical_learning_roles() -> None:
     ws = WikiSkill.open(ROOT / "knowledge")
     ids = {item["id"] for item in ws.session_types()}
     assert {
+        "session-types/experience",
+        "session-types/wiki",
+        "session-types/skill",
         "session-types/inference",
         "session-types/wiki-maintainer",
         "session-types/skill-evolver",
@@ -26,9 +29,28 @@ def test_builtin_session_types_are_declared() -> None:
     } <= ids
 
 
-def test_inference_context_uses_skills_without_injected_wiki() -> None:
+def test_legacy_learning_names_specialize_canonical_roles() -> None:
+    ws = WikiSkill.open(ROOT / "knowledge")
+    assert ws.effective_session_type("session-types/inference")["inheritance"] == [
+        "session-types/base",
+        "session-types/experience",
+        "session-types/inference",
+    ]
+    assert ws.effective_session_type("session-types/wiki-maintainer")["inheritance"] == [
+        "session-types/base",
+        "session-types/wiki",
+        "session-types/wiki-maintainer",
+    ]
+    assert ws.effective_session_type("session-types/skill-evolver")["inheritance"] == [
+        "session-types/base",
+        "session-types/skill",
+        "session-types/skill-evolver",
+    ]
+
+
+def test_experience_context_uses_skills_without_injected_wiki() -> None:
     context = WikiSkill.open(ROOT / "knowledge").context(
-        "bootstrap repository", "session-types/inference"
+        "bootstrap repository", "session-types/experience"
     )
     assert context["skills"]
     assert context["wiki"] == []
@@ -45,14 +67,21 @@ def test_wiki_maintainer_keeps_pattern_as_prompt_nudge_not_type() -> None:
     assert "WikiPattern" not in ws.inventory()
 
 
-def test_session_type_selects_its_own_runspec(tmp_path: Path) -> None:
+def test_canonical_session_type_selects_its_own_runspec(tmp_path: Path) -> None:
     knowledge = _copy_bundle(tmp_path)
     result = WikiSkill.open(knowledge).start_run(
-        "execute a task with active skills",
-        session_type_id="session-types/inference",
+        "execute a task with available skills",
+        session_type_id="session-types/experience",
     )
-    assert result["session_type"] == "session-types/inference"
-    assert result["run_spec"] == "run-specs/inference"
+    assert result["session_type"] == "session-types/experience"
+    assert result["run_spec"] == "run-specs/experience"
     requirements = {item["requirement"] for item in result["check"]["unsatisfied"]}
     assert "reading:active-skills" in requirements
     assert "goal:task-advance" in requirements
+
+
+def test_evaluator_remains_optional_specialization() -> None:
+    ws = WikiSkill.open(ROOT / "knowledge")
+    evaluator = ws.effective_session_type("session-types/evaluator")
+    assert evaluator["inheritance"] == ["session-types/base", "session-types/evaluator"]
+    assert "not a fourth canonical learning role" in evaluator["purpose"]

@@ -30,4 +30,4 @@ The body must be:
 - Concise, procedural, step-by-step.
 - Free of raw conversation dumps or unverified notes.
 
-A skill and its RunSpec may evolve together through the normal Experience -> WikiEntry -> SkillProposal -> SkillEvaluation lifecycle.
+An `experimental` AgentSkill may coexist with the active incumbent while Experience sessions gather evidence under each version. Wiki sessions synthesize and compare those experiences; later Skill sessions decide whether to refine, continue experimenting, promote, reject, deprecate, or replace the candidate. `SkillEvaluation` may record an explicit benchmark when useful, but it is not a mandatory fourth stage of the learning cycle.

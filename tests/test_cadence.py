@@ -25,6 +25,21 @@ def test_on_demand_session_is_explainable_but_not_auto_selected() -> None:
     assert "explicit-request" in requested["reasons"]
 
 
+def test_canonical_roles_do_not_duplicate_consumer_cadence() -> None:
+    ws = WikiSkill.open(ROOT / "knowledge")
+    for session_type in (
+        "session-types/experience",
+        "session-types/wiki",
+        "session-types/skill",
+    ):
+        automatic = ws.session_eligibility(session_type, now=NOW)
+        requested = ws.session_eligibility(session_type, now=NOW, requested=True)
+        assert automatic["eligible"] is False
+        assert automatic["blockers"] == ["no-cadence-policy"]
+        assert requested["eligible"] is True
+        assert requested["reasons"] == ["explicit-request"]
+
+
 def test_new_experiences_activate_wiki_maintainer() -> None:
     result = WikiSkill.open(ROOT / "knowledge").session_eligibility(
         "session-types/wiki-maintainer", now=NOW
