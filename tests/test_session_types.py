@@ -35,7 +35,7 @@ def test_session_type_inheritance_appends_nudges() -> None:
 
 def test_session_type_cycle_is_rejected(tmp_path: Path) -> None:
     knowledge = _bundle(tmp_path)
-    directory = knowledge / "session-types"
+    directory = knowledge / "skills" / "session-types"
     _write(
         directory / "cycle-a.md",
         {
@@ -64,13 +64,13 @@ def test_session_type_cycle_is_rejected(tmp_path: Path) -> None:
 
 def test_missing_default_falls_back_to_an_available_session(tmp_path: Path) -> None:
     knowledge = _bundle(tmp_path)
-    (knowledge / "session-types" / "development.md").unlink()
+    (knowledge / "skills" / "session-types" / "development.md").unlink()
     result = WikiSkill.open(knowledge).start_run("fallback session")
     assert result["session_type"] == "session-types/base"
 
 
 def test_bundle_without_session_types_cannot_start(tmp_path: Path) -> None:
     knowledge = _bundle(tmp_path)
-    shutil.rmtree(knowledge / "session-types")
+    shutil.rmtree(knowledge / "skills" / "session-types")
     with pytest.raises(ValueError, match="No SessionType"):
         WikiSkill.open(knowledge).start_run("no session type")

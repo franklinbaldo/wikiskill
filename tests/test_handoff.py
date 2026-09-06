@@ -33,7 +33,7 @@ def test_partial_run_requires_handoff_and_future_run_archives_it(tmp_path: Path)
     source_run = source["run_id"]
 
     _write_concept(
-        knowledge_path / "runs" / "partial-outcome.md",
+        knowledge_path / "experiences" / "runs" / "partial-outcome.md",
         {
             "type": "RunOutcome",
             "id": "run-outcomes/handoff-source",
@@ -86,7 +86,9 @@ def test_partial_run_requires_handoff_and_future_run_archives_it(tmp_path: Path)
     }
     assert WikiSkill.open(knowledge_path).active_handoffs() == []
 
-    handoff_doc = (knowledge_path / "handoffs" / "handoff-runtime.md").read_text(encoding="utf-8")
+    handoff_doc = (knowledge_path / "experiences" / "handoffs" / "handoff-runtime.md").read_text(
+        encoding="utf-8"
+    )
     assert 'status: "archived"' in handoff_doc
     assert f'continued_by_run: "{continuing_run}"' in handoff_doc
     assert "archived_at:" in handoff_doc
@@ -160,7 +162,7 @@ def test_complete_run_does_not_require_handoff(tmp_path: Path) -> None:
     run_id = started["run_id"]
 
     _write_concept(
-        knowledge_path / "runs" / "complete-outcome.md",
+        knowledge_path / "experiences" / "runs" / "complete-outcome.md",
         {
             "type": "RunOutcome",
             "id": "run-outcomes/complete",
