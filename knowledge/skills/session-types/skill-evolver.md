@@ -7,6 +7,7 @@ run_spec: run-specs/skill-evolution
 extends: session-types/base
 context_policy: context-policies/skill-evolver
 access_policy: access-policies/development
+cadence_policy: cadence-policies/skill-evolver
 nudges:
   - "Propose changes only when the accumulated knowledge supports a procedural improvement."
   - "Link the proposal to the WikiEntry and experiences that justify it."

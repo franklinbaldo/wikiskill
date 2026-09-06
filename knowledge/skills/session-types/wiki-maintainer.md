@@ -7,6 +7,7 @@ run_spec: run-specs/wiki-maintenance
 extends: session-types/base
 context_policy: context-policies/wiki-maintainer
 access_policy: access-policies/development
+cadence_policy: cadence-policies/wiki-maintainer
 nudges:
   - "Prefer updating an existing WikiEntry when new evidence supports the same lesson."
   - "Create a new WikiEntry when the lesson is materially distinct, not merely phrased differently."

@@ -7,6 +7,7 @@ run_spec: run-specs/wikiskill-development
 extends: session-types/base
 context_policy: context-policies/development
 access_policy: access-policies/development
+cadence_policy: cadence-policies/development
 nudges:
   - "Prefer a concrete repository advance over commentary about possible work."
   - "Use the repository's issues, PRs, checks, handoffs, and OKF state as first-class execution context."
