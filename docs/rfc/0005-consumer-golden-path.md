@@ -59,6 +59,8 @@ Bootstrap creates `.wikiskill/` with two conceptual surfaces:
 
 Physical output paths used by existing runtime concepts may coexist with this structure. The key invariant is ownership: files listed in `manifest.json` are managed by WikiSkill; files outside that set are consumer/runtime state and are never overwritten by `upgrade`.
 
+Consumers are not expected to understand or maintain every managed file physically present under `.wikiskill/`. The useful measure of adoption complexity is the consumer-owned surface, not the generated file count.
+
 ## Standard profile
 
 The standard profile makes the canonical cycle useful without requiring a scheduler-specific prompt.
@@ -124,6 +126,8 @@ When there are no conflicts, upgrade:
 - adds newly managed files;
 - removes obsolete managed files only when they still match the previous recorded hash;
 - leaves all consumer/runtime files untouched;
+- validates a staged candidate before touching live state;
+- restores the previous live state if the final write fails;
 - writes a new manifest only after the managed update succeeds.
 
 The first implementation intentionally has no force-overwrite mode. Resolving an ownership conflict should be explicit.
@@ -136,16 +140,42 @@ The source repository remains the authority for canonical specs and role definit
 
 ## Local specialization
 
-A repository needing stronger domain rules should add local concepts that extend the installed system roles. For example:
+A consumer should specialize a managed role rather than fork it. SessionType inheritance is the primary mechanism:
 
 ```yaml
 type: SessionType
 id: session-types/judicial-experience
+title: Judicial Experience
+purpose: "Do substantive work in the Judicial repository."
 extends: session-types/standard-experience
-run_spec: run-specs/judicial-experience
+run_spec: run-specs/experience
+nudges:
+  - "Prefer substantive repository value over meta-work."
 ```
 
-The local RunSpec can add legal/repository-specific readings and checks. The consumer does not need to redefine what Experience means globally.
+The scheduler treats inheritance as specialization. If a parent has a child, automatic and `start-next` selection consider the leaf specialization instead of making parent and child compete by priority or lexical order. The parent remains explicitly startable by id.
+
+A consumer that needs one extra operational requirement should not copy the parent RunSpec. `parent_spec` appends the four required component lists into the effective contract:
+
+```yaml
+type: RunSpec
+id: run-specs/judicial-skill
+title: Judicial Skill evolution
+version: "1.0.0"
+status: active
+parent_spec: run-specs/skill
+required_reading_kinds: []
+required_goal_kinds: []
+required_evidence_kinds: []
+required_check_kinds:
+  - proportionality
+```
+
+The effective RunSpec inherits the canonical Skill readings, goal, evidence, lineage check, result states, and completion guidance while adding only `proportionality`. The complete effective contract is pinned into the LoopRun so later changes to either parent or child do not rewrite history.
+
+Handoffs follow the same specialization semantics: a Handoff targeting a parent SessionType can make a compatible leaf specialization eligible. This lets generic producers hand work to a role without knowing every consumer-specific child.
+
+The design goal is small local configuration. A consumer should only declare differences that carry domain meaning.
 
 ## Upgrade compatibility
 
