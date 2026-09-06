@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from okf_parser import load_bundle
 
+from wikiskill.generated.okf_models import LoopRunConcept
+from wikiskill.models import generated_model_for, project_frontmatter
 from wikiskill.pinning import PinnedWikiSkill
 
 _COMPONENT_PREFIXES = {
@@ -218,9 +220,10 @@ class LiveRunWikiSkill(PinnedWikiSkill):
         fields: dict[str, Any],
     ) -> dict[str, Any]:
         run = self._find_record("LoopRun", run_identifier)
-        run_fm = dict(run["frontmatter"])
-        run_id = str(run_fm.get("id") or run["id"])
-        if str(run_fm.get("status") or "") == "closed":
+        run_fm = dict(cast("dict[str, object]", run["frontmatter"]))
+        run_model = project_frontmatter(LoopRunConcept, run_fm)
+        run_id = run_model.id
+        if run_model.status == "closed":
             raise ValueError(f"LoopRun is already closed: {run_id}")
 
         prefix = _COMPONENT_PREFIXES[concept_type]
@@ -242,19 +245,22 @@ class LiveRunWikiSkill(PinnedWikiSkill):
 
         run_slug = self._slug(run_id.rsplit("/", 1)[-1])
         canonical_id = f"{prefix}/{run_slug}/{slug}"
-        run_path = self.root_path / run["path"]
+        run_path = self.root_path / str(run["path"])
         component_path = run_path.parent / f"{run_slug}-{label}-{slug}.md"
         if component_path.exists():
             raise FileExistsError(component_path)
-        if field == "outcome" and run_fm.get("outcome"):
+        if field == "outcome" and getattr(run_model, "outcome", ""):
             raise ValueError(f"LoopRun already has an outcome: {run_id}")
 
-        frontmatter = {
+        frontmatter: dict[str, object] = {
             "type": concept_type,
             "id": canonical_id,
             "run": run_id,
             **{key: value for key, value in fields.items() if value is not None},
         }
+        component_model = generated_model_for(concept_type)
+        project_frontmatter(component_model, frontmatter)
+
         previous_run = run_path.read_text(encoding="utf-8")
         run_body = self._body_from_document(previous_run)
         updated_run = dict(run_fm)
@@ -262,13 +268,15 @@ class LiveRunWikiSkill(PinnedWikiSkill):
             updated_run["outcome"] = canonical_id
             updated_run["status"] = "closed"
         else:
-            links = [str(item) for item in updated_run.get(field, [])]
+            current_links = getattr(run_model, field, [])
+            links = [str(item) for item in current_links or []]
             if canonical_id not in links:
                 links.append(canonical_id)
             updated_run[field] = links
-            if str(updated_run.get("status") or "") == "scaffold":
+            if run_model.status == "scaffold":
                 updated_run["status"] = "in_progress"
 
+        updated_model = project_frontmatter(LoopRunConcept, updated_run)
         component_content = self._render_markdown(frontmatter, f"# {concept_type}\n")
         run_content = self._render_markdown(updated_run, run_body)
         try:
@@ -287,7 +295,7 @@ class LiveRunWikiSkill(PinnedWikiSkill):
             "id": canonical_id,
             "path": str(component_path),
             "run": run_id,
-            "run_status": str(updated_run["status"]),
+            "run_status": updated_model.status,
             "check": self.check_run(run_id),
         }
 
