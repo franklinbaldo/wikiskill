@@ -11,6 +11,8 @@ from okf_parser import load_bundle
 
 from wikiskill.cadence import CadenceWikiSkill
 
+_LIFECYCLE_CHECK_KINDS = frozenset({"handoff", "goal-state"})
+
 
 class PinnedWikiSkill(CadenceWikiSkill):
     """Cadence runtime whose new LoopRuns retain their governing RunSpec contract."""
@@ -126,7 +128,9 @@ class PinnedWikiSkill(CadenceWikiSkill):
             "outcomes": self._run_components("RunOutcome", run_id),
         }
         unsatisfied = self._pinned_unsatisfied(pinned, components)
-        unsatisfied.extend(item for item in base["unsatisfied"] if item.get("kind") == "handoff")
+        unsatisfied.extend(
+            item for item in base["unsatisfied"] if item.get("kind") in _LIFECYCLE_CHECK_KINDS
+        )
         structural = base["structural"]
         conformant = bool(structural["conformant"]) and not unsatisfied
 
@@ -171,7 +175,9 @@ class PinnedWikiSkill(CadenceWikiSkill):
             "kind": "contract",
             "message": message,
         }
-        extras = [item for item in base["unsatisfied"] if item.get("kind") == "handoff"]
+        extras = [
+            item for item in base["unsatisfied"] if item.get("kind") in _LIFECYCLE_CHECK_KINDS
+        ]
         result = dict(base)
         result.update(
             {

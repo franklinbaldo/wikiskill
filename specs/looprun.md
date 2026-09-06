@@ -61,4 +61,11 @@ validate live run
 -> validate again
 ```
 
+Closing is stronger than merely filling the RunSpec fields. Every RunGoal owned by the run must have a terminal destination before `RunOutcome` may close it:
+
+- `achieved`: the current run resolved the intent;
+- `carried_forward`: a Handoff created by this run explicitly lists the goal and transfers it onward.
+
+Goals left `planned`, `active`, or `advanced` keep the run incomplete. A partial outcome also requires a Handoff to exist before the close is written. Archived Handoffs remain valid provenance for the historical source run.
+
 The final run is both an auditable record of what happened and a structured handoff describing the state reached and the next natural move.

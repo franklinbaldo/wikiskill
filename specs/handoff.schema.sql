@@ -8,6 +8,7 @@ CREATE TABLE "Handoff" (
     "state" VARCHAR,
     "next_action" VARCHAR,
     "references" VARCHAR[],
+    "goals" VARCHAR[],
     "continued_by_run" VARCHAR,
     "archived_at" TIMESTAMPTZ,
     "resolution" VARCHAR

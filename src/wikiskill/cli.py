@@ -176,6 +176,18 @@ def run_goal(
     )
 
 
+@run_app.command(name="goal-status")
+def run_goal_status(
+    run: str,
+    goal: str,
+    status: str,
+    *,
+    path: str | None = None,
+) -> None:
+    """Update an existing RunGoal to the state reached by the live run."""
+    _print_json(_wiki(path).update_run_goal_status(run=run, goal=goal, status=status))
+
+
 @run_app.command(name="decision")
 def run_decision(
     run: str,
@@ -308,6 +320,7 @@ def handoff_create(
     *,
     path: str | None = None,
     references: list[str] | None = None,
+    goals: list[str] | None = None,
     target_session_type: str | None = None,
 ) -> None:
     """Persist an active handoff emitted by one LoopRun."""
@@ -319,6 +332,7 @@ def handoff_create(
             state=state,
             next_action=next_action,
             references=references,
+            goals=goals,
             target_session_type=target_session_type,
         )
     )
