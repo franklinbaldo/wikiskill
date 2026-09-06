@@ -96,6 +96,47 @@ class LiveRunWikiSkill(PinnedWikiSkill):
             },
         )
 
+    def update_run_goal_status(
+        self,
+        *,
+        run: str,
+        goal: str,
+        status: str,
+    ) -> dict[str, Any]:
+        """Move one existing RunGoal to the state actually reached by its live run."""
+        self._require_enum("status", status, _GOAL_STATUSES)
+        run_record = self._find_record("LoopRun", run)
+        run_fm = run_record["frontmatter"]
+        run_id = str(run_fm.get("id") or run_record["id"])
+        if str(run_fm.get("status") or "") == "closed":
+            raise ValueError(f"LoopRun is already closed: {run_id}")
+
+        goal_record = self._find_record("RunGoal", goal)
+        goal_fm = dict(goal_record["frontmatter"])
+        goal_id = str(goal_fm.get("id") or goal_record["id"])
+        if str(goal_fm.get("run") or "") != run_id:
+            raise ValueError(f"RunGoal does not belong to LoopRun: {goal_id}")
+
+        path = self.root_path / goal_record["path"]
+        previous = path.read_text(encoding="utf-8")
+        body = self._body_from_document(previous)
+        goal_fm["status"] = status
+        path.write_text(self._render_markdown(goal_fm, body), encoding="utf-8", newline="\n")
+        try:
+            self._require_conformant_bundle()
+        except Exception:
+            path.write_text(previous, encoding="utf-8", newline="\n")
+            self._reload()
+            raise
+
+        self._reload()
+        return {
+            "id": goal_id,
+            "run": run_id,
+            "status": status,
+            "check": self.check_run(run_id),
+        }
+
     def record_run_decision(
         self,
         *,
