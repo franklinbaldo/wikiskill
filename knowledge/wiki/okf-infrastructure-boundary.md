@@ -19,4 +19,4 @@ Applies to all architectures utilizing Open Knowledge Format for agent systems.
 2. **Domain Runtime Responsibility**: Semantic lifecycle, consolidation heuristics, prompt synthesis, evaluation harnesses, and CLI/MCP ergonomics.
 
 ## Evidence
-- Direct evidence from bootstrap: [Decoupling Experience](../experiences/2026-09-02-bootstrap-okf-boundary.md).
+- Direct evidence from bootstrap: [Decoupling Experience](../experiences/records/2026-09-02-bootstrap-okf-boundary.md).
