@@ -159,6 +159,20 @@ def wikiskill_run_goal(
 
 
 @mcp.tool(
+    name="wikiskill_run_goal_status",
+    description="Update an existing RunGoal to the state reached by its live LoopRun.",
+    annotations=_WRITE_ANNOTATIONS,
+)
+def wikiskill_run_goal_status(
+    run: str,
+    goal: str,
+    status: str,
+    path: str = "knowledge",
+) -> dict[str, Any]:
+    return _get_runtime(path).update_run_goal_status(run=run, goal=goal, status=status)
+
+
+@mcp.tool(
     name="wikiskill_run_decision",
     description="Record a typed RunDecision and attach it to an existing live LoopRun.",
     annotations=_WRITE_ANNOTATIONS,
@@ -295,6 +309,7 @@ def wikiskill_handoff_create(
     state: str,
     next_action: str,
     references: list[str] | None = None,
+    goals: list[str] | None = None,
     target_session_type: str | None = None,
     path: str = "knowledge",
 ) -> dict[str, Any]:
@@ -305,6 +320,7 @@ def wikiskill_handoff_create(
         state=state,
         next_action=next_action,
         references=references,
+        goals=goals,
         target_session_type=target_session_type,
     )
 
