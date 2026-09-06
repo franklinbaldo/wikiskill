@@ -112,7 +112,7 @@ def test_carried_goal_requires_explicit_handoff_link(tmp_path: Path) -> None:
     before = WikiSkill.open(knowledge_path).check_run(run_id)
     assert f"handoff:{goal_id}" in {item["requirement"] for item in before["unsatisfied"]}
 
-    with pytest.raises(ValueError, match="handoff"):
+    with pytest.raises(ValueError, match="Handoff"):
         WikiSkill.open(knowledge_path).record_run_outcome(
             run=run_id,
             component_id="partial",
