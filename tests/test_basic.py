@@ -31,7 +31,7 @@ def _temp_bundle(tmp_path: Path) -> Path:
 
 
 def test_version() -> None:
-    assert __version__ == "0.2.7"
+    assert __version__ == "0.2.8"
 
 
 def test_bundle_conformance() -> None:
@@ -49,6 +49,7 @@ def test_bundle_conformance() -> None:
     assert "ContextPolicy" in concept_types
     assert "AccessPolicy" in concept_types
     assert "OutputPolicy" in concept_types
+    assert "CadencePolicy" in concept_types
 
 
 def test_wikiskill_runtime_inventory_and_context() -> None:
@@ -60,6 +61,7 @@ def test_wikiskill_runtime_inventory_and_context() -> None:
     assert inv["AgentSkill"] >= 1
     assert inv["RunSpec"] >= 1
     assert inv["SessionType"] >= 2
+    assert inv["CadencePolicy"] >= 5
 
     ctx = ws.context(task="wikiskill development")
     assert ctx["task"] == "wikiskill development"
@@ -213,6 +215,8 @@ def test_fastmcp_tools_registered() -> None:
         assert "wikiskill_handoffs" in tool_names
         assert "wikiskill_handoff_create" in tool_names
         assert "wikiskill_handoff_continue" in tool_names
+        assert "wikiskill_session_eligibility" in tool_names
+        assert "wikiskill_next_session" in tool_names
 
     asyncio.run(_check())
 
@@ -229,6 +233,7 @@ def test_pydantic_schema_contracts_derivation() -> None:
     assert "class ContextPolicyConcept(BaseModel):" in code
     assert "class AccessPolicyConcept(BaseModel):" in code
     assert "class OutputPolicyConcept(BaseModel):" in code
+    assert "class CadencePolicyConcept(BaseModel):" in code
 
     contracts = get_schema_contracts(knowledge_path)
     contract_types = {c.concept_type for c in contracts}
@@ -242,6 +247,7 @@ def test_pydantic_schema_contracts_derivation() -> None:
         "ContextPolicy",
         "AccessPolicy",
         "OutputPolicy",
+        "CadencePolicy",
     }
 
 
@@ -263,7 +269,7 @@ def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
 
     info()
     captured = capsys.readouterr()
-    assert "wikiskill runtime v0.2.7" in captured.out
+    assert "wikiskill runtime v0.2.8" in captured.out
 
     context("bootstrap")
     captured = capsys.readouterr()
