@@ -22,7 +22,12 @@ _CANONICAL_SOURCES = {
     "knowledge/system/canonical/run-specs/wiki.md": "run-specs/wiki.md",
     "knowledge/system/canonical/run-specs/skill.md": "run-specs/skill.md",
 }
-_LOCAL_PREFIX = Path("knowledge/local")
+_PRESERVED_PREFIXES = (
+    Path("knowledge/local"),
+    Path("knowledge/experiences"),
+    Path("knowledge/wiki"),
+    Path("knowledge/skills"),
+)
 _MANAGED_GITIGNORE = b"/.gitignore\n/manifest.json\n/specs/\n/knowledge/system/\n"
 
 
@@ -136,8 +141,11 @@ def _existing_unmanaged_files(root: Path) -> list[Path]:
     return sorted(path.relative_to(root) for path in root.rglob("*") if path.is_file())
 
 
-def _local_only_state(paths: list[Path]) -> bool:
-    return all(path == _LOCAL_PREFIX or _LOCAL_PREFIX in path.parents for path in paths)
+def _preservable_state(paths: list[Path]) -> bool:
+    return all(
+        any(path == prefix or prefix in path.parents for prefix in _PRESERVED_PREFIXES)
+        for path in paths
+    )
 
 
 def _validate_installation(root: Path) -> dict[str, object]:
@@ -169,14 +177,14 @@ def init_repository(
         }
 
     unmanaged = _existing_unmanaged_files(target)
-    if unmanaged and not _local_only_state(unmanaged):
+    if unmanaged and not _preservable_state(unmanaged):
         return {
             "status": "unmanaged-existing-state",
             "root": str(target),
             "files": [path.as_posix() for path in unmanaged],
             "message": (
-                "Existing .wikiskill state outside knowledge/local has no managed "
-                "manifest; it was left untouched."
+                "Existing .wikiskill state outside consumer/runtime knowledge namespaces "
+                "has no managed manifest; it was left untouched."
             ),
         }
 
@@ -204,7 +212,7 @@ def init_repository(
         "root": str(target),
         "profile": profile,
         "managed_files": len(assets),
-        "preserved_local_files": len(unmanaged),
+        "preserved_files": len(unmanaged),
         "conformant": True,
         "next": ('wikiskill session start-next "Faça o melhor avanço possível neste repositório"'),
     }
