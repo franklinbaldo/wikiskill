@@ -34,6 +34,58 @@ def test_new_run_pins_complete_runspec_snapshot(tmp_path: Path) -> None:
     assert started["check"]["run_spec_pinned"] is True
 
 
+def test_parent_spec_appends_requirements_into_pinned_contract(tmp_path: Path) -> None:
+    knowledge = _copy_bundle(tmp_path)
+    child = knowledge / "skills/run-specs/judicial-skill.md"
+    child.write_text(
+        """---
+type: RunSpec
+id: run-specs/judicial-skill
+title: Judicial skill evolution
+version: \"1.0.0\"
+status: active
+parent_spec: run-specs/skill
+required_reading_kinds: []
+required_goal_kinds: []
+required_evidence_kinds: []
+required_check_kinds:
+  - proportionality
+completion_notes: \"Add the Judicial proportionality check without copying the canonical Skill contract.\"
+---
+
+# Judicial skill evolution
+
+Consumer specialization of the canonical Skill RunSpec.
+""",
+        encoding="utf-8",
+    )
+
+    ws = WikiSkill.open(knowledge)
+    effective = ws.effective_run_spec("run-specs/judicial-skill")
+    assert effective["inheritance"] == ["run-specs/skill", "run-specs/judicial-skill"]
+    assert effective["required_goal_kinds"] == ["evolve-skill"]
+    assert effective["required_evidence_kinds"] == ["intervention"]
+    assert effective["required_check_kinds"] == ["lineage", "proportionality"]
+    assert effective["allowed_result_states"] == [
+        "proposed",
+        "refined",
+        "promoted",
+        "rejected",
+        "no-change",
+        "partial",
+        "blocked",
+    ]
+
+    started = ws.start_run("evolve Judicial procedure", "run-specs/judicial-skill")
+    run = WikiSkill.open(knowledge)._find_record("LoopRun", started["run_id"])
+    snapshot = json.loads(str(run["frontmatter"]["run_spec_snapshot"]))
+    assert snapshot["id"] == "run-specs/judicial-skill"
+    assert snapshot["required_check_kinds"] == ["lineage", "proportionality"]
+    requirements = {item["requirement"] for item in started["check"]["unsatisfied"]}
+    assert "check:lineage" in requirements
+    assert "check:proportionality" in requirements
+
+
 def test_check_run_uses_snapshot_after_runspec_changes(tmp_path: Path) -> None:
     knowledge = _copy_bundle(tmp_path)
     started = WikiSkill.open(knowledge).start_run(
