@@ -101,6 +101,15 @@ class PolicyWikiSkill(SessionWikiSkill):
             )
         return records
 
+    def _normalize_context_records(
+        self, concept_type: str, selected: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """Keep retrieval relevance while replacing path-derived ids with authored ids."""
+        available = self._context_records(concept_type)
+        by_path = {record["path"]: record for record in available}
+        normalized = [by_path.get(str(record.get("path") or ""), record) for record in selected]
+        return normalized or available
+
     def context(self, task: str, session_type_id: str | None = None) -> dict[str, Any]:
         """Return context plus explicit policy guidance for the selected session."""
         result = super().context(task)
@@ -126,12 +135,15 @@ class PolicyWikiSkill(SessionWikiSkill):
             exclude = {str(item) for item in context_policy.get("exclude", [])}
             mode = str(context_policy.get("mode") or "advisory")
 
-            # Advisory policy does not restrict host access, but its declared surfaces
-            # should still yield useful injected context when lexical matching is empty.
+            # Advisory policy does not restrict host access, but declared surfaces
+            # still get stable authored identities and a useful fallback context.
             for category in include:
                 key, concept_type = surfaces.get(category, ("", ""))
-                if key and concept_type and category != "handoffs" and not result.get(key):
-                    result[key] = self._context_records(concept_type)
+                if key and concept_type and category != "handoffs":
+                    normalized = self._normalize_context_records(
+                        concept_type, list(result.get(key, []))
+                    )
+                    result[key] = normalized[:5] if category == "experiences" else normalized
 
             if mode == "curated":
                 for category, (key, _) in surfaces.items():
