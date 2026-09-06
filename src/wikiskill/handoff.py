@@ -14,6 +14,7 @@ from wikiskill.runtime import WikiSkill as BaseWikiSkill
 
 _HANDOFF_STATUS_ACTIVE = "active"
 _HANDOFF_STATUS_ARCHIVED = "archived"
+_TERMINAL_GOAL_STATUSES = frozenset({"achieved", "carried_forward"})
 
 
 class HandoffWikiSkill(BaseWikiSkill):
@@ -37,6 +38,7 @@ class HandoffWikiSkill(BaseWikiSkill):
                 continue
             canonical_id = str(fm.get("id") or record["id"])
             references = [str(item) for item in fm.get("references", [])]
+            goals = [str(item) for item in fm.get("goals", [])]
             corpus = " ".join(
                 [
                     canonical_id,
@@ -44,6 +46,7 @@ class HandoffWikiSkill(BaseWikiSkill):
                     str(fm.get("state") or ""),
                     str(fm.get("next_action") or ""),
                     *references,
+                    *goals,
                 ]
             ).lower()
             relevant = any(word in corpus for word in keywords) if keywords else True
@@ -57,6 +60,7 @@ class HandoffWikiSkill(BaseWikiSkill):
                     "state": str(fm.get("state") or ""),
                     "next_action": str(fm.get("next_action") or ""),
                     "references": references,
+                    "goals": goals,
                     "relevant": relevant,
                 }
             )
@@ -71,15 +75,27 @@ class HandoffWikiSkill(BaseWikiSkill):
         state: str,
         next_action: str,
         references: list[str] | None = None,
+        goals: list[str] | None = None,
         target_session_type: str | None = None,
     ) -> dict[str, Any]:
         """Persist active unfinished work emitted by one LoopRun."""
-        self._find_record("LoopRun", created_by_run)
+        run = self._find_record("LoopRun", created_by_run)
+        run_id = str(run["frontmatter"].get("id") or run["id"])
         slug = self._slug(handoff_id.rsplit("/", 1)[-1])
         if not slug:
             raise ValueError("handoff_id must contain a usable identifier")
         if not title.strip() or not state.strip() or not next_action.strip():
             raise ValueError("title, state and next_action must not be empty")
+
+        linked_goals: list[str] = []
+        for goal_identifier in goals or []:
+            goal = self._find_record("RunGoal", goal_identifier)
+            goal_fm = goal["frontmatter"]
+            if str(goal_fm.get("run") or "") != run_id:
+                raise ValueError(f"Handoff goal does not belong to created_by_run: {goal_identifier}")
+            canonical_goal = str(goal_fm.get("id") or goal["id"])
+            if canonical_goal not in linked_goals:
+                linked_goals.append(canonical_goal)
 
         canonical_id = f"handoffs/{slug}"
         directory = self.root_path / "handoffs"
@@ -95,10 +111,11 @@ class HandoffWikiSkill(BaseWikiSkill):
             "title": title,
             "created_at": now,
             "status": _HANDOFF_STATUS_ACTIVE,
-            "created_by_run": created_by_run,
+            "created_by_run": run_id,
             "state": state,
             "next_action": next_action,
             "references": references or [],
+            "goals": linked_goals,
         }
         if target_session_type:
             frontmatter["target_session_type"] = target_session_type
@@ -170,32 +187,87 @@ class HandoffWikiSkill(BaseWikiSkill):
         return result
 
     def check_run(self, run_id_or_path: str) -> dict[str, Any]:
-        """Require a Handoff when a run declares material work partial."""
+        """Require every run-owned goal to reach a terminal, accountable state."""
         result = super().check_run(run_id_or_path)
         run = self._find_record("LoopRun", run_id_or_path)
         run_id = str(run["frontmatter"].get("id") or run["id"])
-        outcomes = self._run_components("RunOutcome", run_id)
-        if not outcomes:
-            return result
-
-        work_status = str(outcomes[-1]["frontmatter"].get("work_status") or "")
-        active_for_run = [
+        goals = self._run_components("RunGoal", run_id)
+        handoffs_for_run = [
             item
             for item in self._records("Handoff")
-            if str(item["frontmatter"].get("status") or "") == _HANDOFF_STATUS_ACTIVE
-            and str(item["frontmatter"].get("created_by_run") or "") == run_id
+            if str(item["frontmatter"].get("created_by_run") or "") == run_id
         ]
-        if work_status == "partial" and not active_for_run:
-            requirement = {
-                "requirement": "handoff",
-                "kind": "handoff",
-                "message": "Record a Handoff for material work left to a future LoopRun.",
+        active_for_run = [
+            item
+            for item in handoffs_for_run
+            if str(item["frontmatter"].get("status") or "") == _HANDOFF_STATUS_ACTIVE
+        ]
+
+        lifecycle_requirements: list[dict[str, Any]] = []
+        if not goals:
+            lifecycle_requirements.append(
+                {
+                    "requirement": "goal:terminal",
+                    "kind": "goal-state",
+                    "message": "Record at least one RunGoal and resolve it before closing the LoopRun.",
+                }
+            )
+        else:
+            linked_goals = {
+                str(goal_id)
+                for handoff in handoffs_for_run
+                for goal_id in handoff["frontmatter"].get("goals", [])
             }
-            result["unsatisfied"].append(requirement)
+            for goal in goals:
+                goal_fm = goal["frontmatter"]
+                goal_id = str(goal_fm.get("id") or goal["id"])
+                status = str(goal_fm.get("status") or "")
+                if status not in _TERMINAL_GOAL_STATUSES:
+                    lifecycle_requirements.append(
+                        {
+                            "requirement": f"goal-state:{goal_id}",
+                            "kind": "goal-state",
+                            "goal": goal_id,
+                            "observed": status,
+                            "expected": sorted(_TERMINAL_GOAL_STATUSES),
+                            "message": (
+                                f"Resolve RunGoal '{goal_id}' as achieved or carried_forward before "
+                                "closing the LoopRun."
+                            ),
+                        }
+                    )
+                elif status == "carried_forward" and goal_id not in linked_goals:
+                    lifecycle_requirements.append(
+                        {
+                            "requirement": f"handoff:{goal_id}",
+                            "kind": "handoff",
+                            "goal": goal_id,
+                            "message": (
+                                f"Create a Handoff from this run that explicitly lists carried-forward "
+                                f"goal '{goal_id}'."
+                            ),
+                        }
+                    )
+
+        outcomes = self._run_components("RunOutcome", run_id)
+        if outcomes:
+            work_status = str(outcomes[-1]["frontmatter"].get("work_status") or "")
+            if work_status == "partial" and not handoffs_for_run:
+                lifecycle_requirements.append(
+                    {
+                        "requirement": "handoff",
+                        "kind": "handoff",
+                        "message": "Record a Handoff for material work left to a future LoopRun.",
+                    }
+                )
+
+        if lifecycle_requirements:
+            result["unsatisfied"].extend(lifecycle_requirements)
             result["conformant"] = False
             if result["next_action"].get("kind") == "complete":
-                result["next_action"] = dict(requirement)
+                result["next_action"] = dict(lifecycle_requirements[0])
         result["active_handoffs_created"] = len(active_for_run)
+        result["handoffs_created"] = len(handoffs_for_run)
         return result
 
     def _require_conformant_bundle(self) -> None:
