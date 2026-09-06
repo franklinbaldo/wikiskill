@@ -58,12 +58,14 @@ class CadenceWikiSkill(PolicyWikiSkill):
         active_runs = sum(
             1
             for run in runs
-            if str(run["frontmatter"].get("status") or "") in {"scaffold", "active", "in_progress"}
+            if str(run["frontmatter"].get("status") or "")
+            in {"scaffold", "active", "in_progress"}
         )
         runs_last_hour = sum(
             1
             for run in runs
-            if (stamp := self._timestamp(run)) is not None and current - stamp <= timedelta(hours=1)
+            if (stamp := self._timestamp(run)) is not None
+            and current - stamp <= timedelta(hours=1)
         )
         matching_handoffs = [
             item
@@ -84,7 +86,9 @@ class CadenceWikiSkill(PolicyWikiSkill):
             reasons.append("active-handoff")
 
         interval = self._int(cadence.get("interval_seconds"))
-        if interval and (last_run is None or (current - last_run).total_seconds() >= interval):
+        if interval and (
+            last_run is None or (current - last_run).total_seconds() >= interval
+        ):
             reasons.append("interval")
 
         threshold_gte = self._int(cadence.get("threshold_gte"))
@@ -97,11 +101,17 @@ class CadenceWikiSkill(PolicyWikiSkill):
             reasons.append("threshold")
 
         max_delay = self._int(cadence.get("max_delay_seconds"))
-        if max_delay and (last_run is None or (current - last_run).total_seconds() >= max_delay):
+        if max_delay and (
+            last_run is None or (current - last_run).total_seconds() >= max_delay
+        ):
             reasons.append("max-delay")
 
         cooldown = self._int(cadence.get("cooldown_seconds"))
-        if cooldown and last_run is not None and (current - last_run).total_seconds() < cooldown:
+        if (
+            cooldown
+            and last_run is not None
+            and (current - last_run).total_seconds() < cooldown
+        ):
             blockers.append("cooldown")
 
         max_parallel = self._int(cadence.get("max_parallel"))
@@ -123,9 +133,31 @@ class CadenceWikiSkill(PolicyWikiSkill):
                 "runs_last_hour": runs_last_hour,
                 "threshold_value": threshold_value,
                 "targeted_handoffs": len(matching_handoffs),
-                "last_run": last_run.isoformat().replace("+00:00", "Z") if last_run else None,
+                "last_run": last_run.isoformat().replace("+00:00", "Z")
+                if last_run
+                else None,
             },
         }
+
+    def _scheduler_session_types(self) -> list[dict[str, Any]]:
+        """Return only leaf SessionTypes for automatic/requested selection.
+
+        A child SessionType is a specialization of its parent. Keeping both in the
+        scheduler would make consumers compete with the default they extended. Parent
+        types remain explicitly startable by id; only scheduler selection prefers the
+        most specialized leaves.
+        """
+        records = self._records("SessionType")
+        extended = {
+            str(item["frontmatter"].get("extends") or "")
+            for item in records
+            if item["frontmatter"].get("extends")
+        }
+        return [
+            self.effective_session_type(item["id"])
+            for item in records
+            if item["id"] not in extended and item["id"] != "session-types/base"
+        ]
 
     def eligible_sessions(
         self,
@@ -133,18 +165,20 @@ class CadenceWikiSkill(PolicyWikiSkill):
         now: datetime | None = None,
         requested: bool = False,
     ) -> list[dict[str, Any]]:
-        """Return eligible sessions ordered deterministically.
+        """Return eligible leaf sessions ordered deterministically.
 
         ``requested`` adds on-demand eligibility without changing automatic threshold,
         interval, handoff, cooldown, or budget semantics.
         """
         candidates = [
             self.session_eligibility(item["id"], now=now, requested=requested)
-            for item in self.session_types()
-            if item["id"] != "session-types/base"
+            for item in self._scheduler_session_types()
         ]
         eligible = [item for item in candidates if item["eligible"]]
-        return sorted(eligible, key=lambda item: (-item["priority"], item["session_type"]))
+        return sorted(
+            eligible,
+            key=lambda item: (-item["priority"], item["session_type"]),
+        )
 
     def next_session(
         self,
@@ -156,7 +190,12 @@ class CadenceWikiSkill(PolicyWikiSkill):
         eligible = self.eligible_sessions(now=now, requested=requested)
         return eligible[0] if eligible else None
 
-    def start_next_session(self, task: str, *, now: datetime | None = None) -> dict[str, Any]:
+    def start_next_session(
+        self,
+        task: str,
+        *,
+        now: datetime | None = None,
+    ) -> dict[str, Any]:
         """Start the best session for an explicit request to do the next useful work."""
         candidate = self.next_session(now=now, requested=True)
         if candidate is None:
@@ -196,7 +235,11 @@ class CadenceWikiSkill(PolicyWikiSkill):
         raise ValueError(f"Unknown cadence threshold metric: {metric}")
 
     def _latest_timestamp(self, records: list[dict[str, Any]]) -> datetime | None:
-        stamps = [stamp for item in records if (stamp := self._timestamp(item)) is not None]
+        stamps = [
+            stamp
+            for item in records
+            if (stamp := self._timestamp(item)) is not None
+        ]
         return max(stamps) if stamps else None
 
     @staticmethod
