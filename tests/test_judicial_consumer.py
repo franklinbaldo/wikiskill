@@ -5,7 +5,6 @@ from pathlib import Path
 from wikiskill import WikiSkill
 from wikiskill.bootstrap import init_repository
 
-
 JUDICIAL_EXPERIENCE = """---
 type: SessionType
 id: session-types/judicial-experience
