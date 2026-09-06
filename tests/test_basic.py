@@ -31,7 +31,7 @@ def _temp_bundle(tmp_path: Path) -> Path:
 
 
 def test_version() -> None:
-    assert __version__ == "0.2.8"
+    assert __version__ == "0.2.9"
 
 
 def test_bundle_conformance() -> None:
@@ -200,7 +200,7 @@ def test_run_check_turns_green_when_contract_is_satisfied(tmp_path: Path) -> Non
     assert result["next_action"] == {
         "kind": "complete",
         "requirement": None,
-        "message": "Run satisfies its RunSpec.",
+        "message": "Run satisfies its pinned RunSpec.",
     }
 
 
@@ -269,7 +269,7 @@ def test_cli_execution(capsys: pytest.CaptureFixture[str]) -> None:
 
     info()
     captured = capsys.readouterr()
-    assert "wikiskill runtime v0.2.8" in captured.out
+    assert "wikiskill runtime v0.2.9" in captured.out
 
     context("bootstrap")
     captured = capsys.readouterr()
