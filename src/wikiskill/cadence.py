@@ -67,10 +67,12 @@ class CadenceWikiSkill(PolicyWikiSkill):
             if (stamp := self._timestamp(run)) is not None
             and current - stamp <= timedelta(hours=1)
         )
+        lineage = set(str(item) for item in session.get("inheritance", []))
+        lineage.add(str(session["id"]))
         matching_handoffs = [
             item
             for item in self.active_handoffs()
-            if item.get("target_session_type") == session["id"]
+            if str(item.get("target_session_type") or "") in lineage
         ]
         threshold_value = self._metric_value(
             str(cadence.get("threshold_metric") or ""),
@@ -226,11 +228,14 @@ class CadenceWikiSkill(PolicyWikiSkill):
                 and stamp > last_run
             )
         if metric == "active-handoffs":
+            session = self.effective_session_type(session_type_id)
+            lineage = set(str(item) for item in session.get("inheritance", []))
+            lineage.add(str(session["id"]))
             return sum(
                 1
                 for item in self.active_handoffs()
                 if not item.get("target_session_type")
-                or item.get("target_session_type") == session_type_id
+                or str(item.get("target_session_type") or "") in lineage
             )
         raise ValueError(f"Unknown cadence threshold metric: {metric}")
 
