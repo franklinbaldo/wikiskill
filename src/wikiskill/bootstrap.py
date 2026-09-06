@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from okf_parser import check_bundle
+from okf_parser.service import check_bundle
 
 MANIFEST_FORMAT_VERSION = 1
 DEFAULT_PROFILE = "standard"
@@ -118,7 +118,11 @@ def _validate_installation(root: Path) -> dict[str, object]:
     )
 
 
-def init_repository(repository: str | Path = ".", *, profile: str = DEFAULT_PROFILE) -> dict[str, Any]:
+def init_repository(
+    repository: str | Path = ".",
+    *,
+    profile: str = DEFAULT_PROFILE,
+) -> dict[str, Any]:
     """Initialize one repository with the managed WikiSkill consumer bundle."""
     repo = Path(repository).resolve()
     if not repo.is_dir():
@@ -166,8 +170,7 @@ def init_repository(repository: str | Path = ".", *, profile: str = DEFAULT_PROF
         "managed_files": len(assets),
         "conformant": True,
         "next": (
-            f'wikiskill session start-next "Faça o melhor avanço possível neste repositório" '
-            f"--path {target / 'knowledge'}"
+            'wikiskill session start-next "Faça o melhor avanço possível neste repositório"'
         ),
     }
 
