@@ -92,10 +92,7 @@ class HandoffWikiSkill(BaseWikiSkill):
             goal = self._find_record("RunGoal", goal_identifier)
             goal_fm = goal["frontmatter"]
             if str(goal_fm.get("run") or "") != run_id:
-                msg = (
-                    "Handoff goal does not belong to created_by_run: "
-                    f"{goal_identifier}"
-                )
+                msg = f"Handoff goal belongs to another run: {goal_identifier}"
                 raise ValueError(msg)
             canonical_goal = str(goal_fm.get("id") or goal["id"])
             if canonical_goal not in linked_goals:
@@ -213,10 +210,7 @@ class HandoffWikiSkill(BaseWikiSkill):
                 {
                     "requirement": "goal:terminal",
                     "kind": "goal-state",
-                    "message": (
-                        "Record at least one RunGoal and resolve it before closing "
-                        "the LoopRun."
-                    ),
+                    "message": "Resolve at least one RunGoal before closing the LoopRun.",
                 }
             )
         else:
