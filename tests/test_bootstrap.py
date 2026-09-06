@@ -42,6 +42,44 @@ def test_init_creates_conformant_managed_consumer_bundle(tmp_path: Path) -> None
     assert started["run_spec"] == "run-specs/experience"
 
 
+def test_consumer_specialization_replaces_default_for_scheduler(tmp_path: Path) -> None:
+    init_repository(tmp_path)
+    knowledge = tmp_path / ".wikiskill/knowledge"
+    local = knowledge / "local/session-types/judicial-experience.md"
+    local.parent.mkdir(parents=True)
+    local.write_text(
+        """---
+type: SessionType
+id: session-types/judicial-experience
+title: Judicial experience
+purpose: \"Do real Judicial work under the consumer contract.\"
+run_spec: run-specs/experience
+extends: session-types/standard-experience
+nudges:
+  - \"Prefer substantive Judicial work.\"
+---
+
+# Judicial experience
+
+Consumer-owned specialization of the managed standard Experience role.
+""",
+        encoding="utf-8",
+    )
+
+    ws = WikiSkill.open(knowledge)
+    requested = ws.eligible_sessions(requested=True)
+    ids = [item["session_type"] for item in requested]
+    assert "session-types/judicial-experience" in ids
+    assert "session-types/standard-experience" not in ids
+
+    started = ws.start_next_session("Do the next useful repository work")
+    assert started["session_type"] == "session-types/judicial-experience"
+    assert started["session"]["inheritance"][-2:] == [
+        "session-types/standard-experience",
+        "session-types/judicial-experience",
+    ]
+
+
 def test_standard_profile_runs_wiki_then_skill_as_experience_accumulates(tmp_path: Path) -> None:
     init_repository(tmp_path)
     knowledge = tmp_path / ".wikiskill/knowledge"
