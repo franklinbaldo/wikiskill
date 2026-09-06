@@ -244,7 +244,8 @@ class LiveRunWikiSkill(PinnedWikiSkill):
                 if str(item["frontmatter"].get("created_by_run") or "") == run_id
             ]
             if not handoffs:
-                raise ValueError("Partial RunOutcome requires a Handoff before the LoopRun can close.")
+                msg = "Partial RunOutcome requires a Handoff before the LoopRun can close."
+                raise ValueError(msg)
         return self._record_run_component(
             "RunOutcome",
             run,
