@@ -32,25 +32,38 @@ def test_builtin_session_types_declare_canonical_learning_roles() -> None:
 def test_legacy_learning_names_specialize_canonical_roles() -> None:
     ws = WikiSkill.open(ROOT / "knowledge")
     assert ws.effective_session_type("session-types/inference")["inheritance"] == [
-        "session-types/base",
         "session-types/experience",
         "session-types/inference",
     ]
     assert ws.effective_session_type("session-types/wiki-maintainer")["inheritance"] == [
-        "session-types/base",
         "session-types/wiki",
         "session-types/wiki-maintainer",
     ]
     assert ws.effective_session_type("session-types/skill-evolver")["inheritance"] == [
-        "session-types/base",
         "session-types/skill",
         "session-types/skill-evolver",
     ]
 
 
-def test_experience_context_uses_skills_without_injected_wiki() -> None:
+def test_canonical_roles_are_policy_neutral() -> None:
+    ws = WikiSkill.open(ROOT / "knowledge")
+    for session_type in (
+        "session-types/experience",
+        "session-types/wiki",
+        "session-types/skill",
+    ):
+        session = ws.effective_session_type(session_type)
+        assert session["inheritance"] == [session_type]
+        assert session["policies"] == {
+            "context_policy": None,
+            "access_policy": None,
+            "output_policy": None,
+        }
+
+
+def test_inference_context_uses_skills_without_injected_wiki() -> None:
     context = WikiSkill.open(ROOT / "knowledge").context(
-        "bootstrap repository", "session-types/experience"
+        "bootstrap repository", "session-types/inference"
     )
     assert context["skills"]
     assert context["wiki"] == []
