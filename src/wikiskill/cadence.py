@@ -89,7 +89,12 @@ class CadenceWikiSkill(PolicyWikiSkill):
             reasons.append("interval")
 
         threshold_gte = self._int(cadence.get("threshold_gte"))
-        if threshold_gte is not None and threshold_value is not None and threshold_value >= threshold_gte:
+        threshold_reached = (
+            threshold_gte is not None
+            and threshold_value is not None
+            and threshold_value >= threshold_gte
+        )
+        if threshold_reached:
             reasons.append("threshold")
 
         max_delay = self._int(cadence.get("max_delay_seconds"))
@@ -183,7 +188,8 @@ class CadenceWikiSkill(PolicyWikiSkill):
 
     @staticmethod
     def _timestamp(record: dict[str, Any]) -> datetime | None:
-        value = str(record["frontmatter"].get("timestamp") or record["frontmatter"].get("created_at") or "")
+        frontmatter = record["frontmatter"]
+        value = str(frontmatter.get("timestamp") or frontmatter.get("created_at") or "")
         if not value:
             return None
         try:
